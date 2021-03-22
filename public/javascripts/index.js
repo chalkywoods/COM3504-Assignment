@@ -77,3 +77,47 @@ function hideLoginInterface(room, userId) {
     document.getElementById('in_room').innerHTML= ' '+room;
 }
 
+
+function sendImage(url, title, desc, author, image) {
+    var imageData = image;//encodeImage(image);
+    var data = JSON.stringify({
+        title: title,
+        description: desc,
+        author: author,
+        image: imageData
+    });
+    $.ajax({
+        url: url,
+        data: data,
+        contentType: 'application/json',
+        type: 'POST',
+        success: function (dataR) {
+            alert('Image uploaded');
+        },
+        error: function (xhr, status, error) {
+            alert('Error: ' + error.message);
+        }
+    });
+}
+
+function encodeImage(image) {
+    var canvas = document.getElementById('canvas');
+    var context = canvas.getContext('2d');
+    context.drawImage(image, 0, 0);
+    var imageData = canvas.toDataURL('image/png');
+    return imageData;
+}
+
+function uploadImage() {
+    var formArray = $("form").serializeArray();
+    var data={};
+    for (index in formArray){
+        data[formArray[index].name] = formArray[index].value;
+    }
+    console.log(data['title']);
+    var reader = new FileReader();
+    reader.addEventListener("load", function () {
+        sendImage('/upload', data['title'], data['desc'], data['author'], reader.result);
+    }, false);
+    reader.readAsDataURL(document.getElementById("image").files[0])
+}
