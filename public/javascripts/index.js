@@ -1,6 +1,6 @@
-let name = null;
-let roomNo = null;
-let socket=null;
+let username = null;
+let room = null;
+const socket = io();
 
 
 /**
@@ -14,6 +14,24 @@ function init() {
     document.getElementById('chat_interface').style.display = 'none';
 
     //@todo here is where you should initialise the socket operations as described in teh lectures (room joining, chat message receipt etc.)
+
+    // join a room
+    socket.on("joinRoom", (room, joining_username) => {
+        if (joining_username === username) {
+            // it enters the chat
+            hideLoginInterface(room, username);
+        } else {
+            // notifies that someone has joined the room
+            writeOnHistory('<b>' + joining_username + '</b>' + ' joined room ' + room);
+        }
+    });
+
+    // receive a chat message
+    socket.on("message", (room, sender_username, msg) => {
+        let who = sender_username;
+        if (who === username) who = 'Me';
+        writeOnHistory('<b>' + who + ':</b> ' + msg);
+    });
 }
 
 /**
@@ -31,8 +49,9 @@ function generateRoom() {
  * and sends the message via  socket
  */
 function sendChatText() {
-    let chatText = document.getElementById('chat_input').value;
-    // @todo send the chat message
+    let msg = document.getElementById('chat_input').value;
+    socket.emit('message', room, username, msg);
+    document.getElementById('chat_input').value = '';
 }
 
 /**
@@ -40,13 +59,14 @@ function sendChatText() {
  * interface
  */
 function connectToRoom() {
-    roomNo = document.getElementById('roomNo').value;
-    name = document.getElementById('name').value;
-    let imageUrl= document.getElementById('image_url').value;
-    if (!name) name = 'Unknown-' + Math.random();
-    //@todo join the room
+    room = document.getElementById('roomNo').value;
+    username = document.getElementById('name').value;
+    let imageUrl = document.getElementById('image_url').value;
+    if (!username) username = 'Unknown-' + Math.random();
+    socket.emit('create or join', room, username);
+    console.log(username + " joined room " + room);
     initCanvas(socket, imageUrl);
-    hideLoginInterface(roomNo, name);
+    hideLoginInterface(room, username);
 }
 
 /**
@@ -55,7 +75,7 @@ function connectToRoom() {
  * @param text: the text to append
  */
 function writeOnHistory(text) {
-    if (text==='') return;
+    if (text === '') return;
     let history = document.getElementById('history');
     let paragraph = document.createElement('p');
     paragraph.innerHTML = text;
@@ -68,13 +88,13 @@ function writeOnHistory(text) {
 /**
  * it hides the initial form and shows the chat
  * @param room the selected room
- * @param userId the user name
+ * @param username the user name
  */
-function hideLoginInterface(room, userId) {
+function hideLoginInterface(room, username) {
     document.getElementById('initial_form').style.display = 'none';
     document.getElementById('chat_interface').style.display = 'block';
-    document.getElementById('who_you_are').innerHTML= userId;
-    document.getElementById('in_room').innerHTML= ' '+room;
+    document.getElementById('who_you_are').innerHTML = username;
+    document.getElementById('in_room').innerHTML = ' ' + room;
 }
 
 
@@ -110,8 +130,8 @@ function encodeImage(image) {
 
 function uploadImage() {
     var formArray = $("form").serializeArray();
-    var data={};
-    for (index in formArray){
+    var data = {};
+    for (index in formArray) {
         data[formArray[index].name] = formArray[index].value;
     }
     console.log(data['title']);
