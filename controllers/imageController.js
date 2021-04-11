@@ -21,3 +21,16 @@ exports.createImage = async (req, res) => {
 
     res.sendStatus(201);
 };
+
+exports.searchImages = async (req, res) => {
+    const { author } = req.params;
+
+    try {
+        const images = await Image.find({ author });
+        res.status(200).json(images);
+        return;
+    } catch(err) {
+        res .send(500);
+        return;
+    }
+};
