@@ -40,8 +40,9 @@ function init() {
  * so to make sure that the room number is not accidentally repeated across uses
  */
 function generateRoom() {
-    roomNo = Math.round(Math.random() * 10000);
-    document.getElementById('roomNo').value = 'R' + roomNo;
+    const roomNo = 'R' + Math.round(Math.random() * 10000);
+    document.getElementById('roomNo').value = roomNo;
+    return roomNo;
 }
 
 /**
@@ -60,6 +61,12 @@ function sendChatText() {
  */
 function connectToRoom() {
     room = document.getElementById('roomNo').value;
+
+    // force generation of room no if it's empty
+    if(!room || room.length === 0) {
+        room = generateRoom();
+    }
+
     username = document.getElementById('name').value;
     let imageUrl = document.getElementById('image_url').value;
     if (!username) username = 'Unknown-' + Math.random();
