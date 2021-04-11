@@ -34,3 +34,26 @@ exports.searchImages = async (req, res) => {
         return;
     }
 };
+
+exports.getImage = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const image = await Image.findById(id);
+
+        if(!image) {
+            res.sendStatus(404);
+            return;
+        }
+
+        res.status(200).json(image);
+    } catch(err) {
+        if(err instanceof mongoose.Error.CastError) {
+            res.sendStatus(404);
+            return;
+        }
+
+        res.sendStatus(500);
+        return;
+    }
+};
