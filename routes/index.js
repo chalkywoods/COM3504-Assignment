@@ -1,15 +1,15 @@
-var express = require('express');
-var router = express.Router();
+const express = require('express');
+const router = express.Router();
+
+const Image = require('../models/image');
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
   res.render('index', { title: 'Image Browsing' });
 });
 
-router.post('/upload', function(req, res, next) {
-  var body = req.body;
-  console.log(body['title'])
-  // TODO save image to MongoDB
+router.post('/upload', async function(req, res, next) {
+
   res.sendStatus(200);
 });
 
