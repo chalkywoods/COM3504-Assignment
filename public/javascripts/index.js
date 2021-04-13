@@ -60,14 +60,6 @@ function sendChatText() {
  * interface
  */
 function connectToRoom(username, room, image) {
-    //room = document.getElementById('roomNo').value;
-
-    // force generation of room no if it's empty
-    //if(!room || room.length === 0) {
-    //    room = generateRoom();
-    //}
-
-    //username = document.getElementById('name').value;
     if (!username) username = 'Unknown-' + Math.random();
     socket.emit('create or join', room, username);
     console.log(username + " joined room " + room);
