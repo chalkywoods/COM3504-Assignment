@@ -39,3 +39,14 @@ a {
 #canvas {
     display: none;
 }
+
+#show_images {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+#imageDiv {
+    border: 1px solid black;
+    margin: 1em;
+    padding: 1em;
+}

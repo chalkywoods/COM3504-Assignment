@@ -4,12 +4,12 @@ const Image = require('../models/image');
 
 exports.createImage = async (req, res) => {
     const {
-        title, description, author, image: base64
+        title, description, author, url, rooms
     } = req.body;
-
     try {
-        await Image.create({ title, description, author, base64 });
+        await Image.create({title, description, author, url, rooms});
     } catch(err) {
+        console.log(err)
         if(err instanceof mongoose.Error.ValidationError) {
             res.sendStatus(422);
             return;
@@ -23,10 +23,10 @@ exports.createImage = async (req, res) => {
 };
 
 exports.searchImages = async (req, res) => {
-    const { author } = req.params;
+    const { author } = req.body;
 
     try {
-        const images = await Image.find({ author });
+        const images = await Image.find({ author }, "title description author url");
         res.status(200).json(images);
         return;
     } catch(err) {
@@ -57,3 +57,46 @@ exports.getImage = async (req, res) => {
         return;
     }
 };
+
+exports.checkRoom = async (req, res) => {
+    const { room } = req.body;
+    try {
+        const image = await Image.findOne({ rooms: room}, '_id url');
+        if(!image) {
+            res.sendStatus(404);
+            return;
+        }
+
+        res.status(200).json(image);
+    } catch(err) {
+        if(err instanceof mongoose.Error.CastError) {
+            res.sendStatus(404);
+            return;
+        }
+
+        res.sendStatus(500);
+        return;
+    }
+};
+
+exports.addRoom = async (req, res) => {
+    const { id, room } = req.body;
+
+    try {
+        const updated = await Image.updateOne({ _id: id}, { "$addToSet": { "rooms": room} });
+        if(updated.matchedCount === 0) {
+            res.sendStatus(404);
+            return;
+        }
+
+        res.sendStatus(200);
+    } catch(err) {
+        if(err instanceof mongoose.Error.CastError) {
+            res.sendStatus(404);
+            return;
+        }
+
+        res.sendStatus(500);
+        return;
+    }
+}

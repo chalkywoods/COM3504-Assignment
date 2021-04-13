@@ -13,10 +13,13 @@ const schema = mongoose.Schema({
         type: String,
         required: true
     },
-    base64: {
+    url: {
         type: String,
         required: true
-    }
+    },
+    rooms: [{
+        type: String
+    }]
 });
 
 module.exports = mongoose.model('Image', schema);
