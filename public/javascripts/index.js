@@ -13,8 +13,6 @@ function init() {
     document.getElementById('initial_form').style.display = 'block';
     document.getElementById('chat_interface').style.display = 'none';
 
-    //@todo here is where you should initialise the socket operations as described in teh lectures (room joining, chat message receipt etc.)
-
     // join a room
     socket.on("joinRoom", (room, joining_username) => {
         if (joining_username === username) {
@@ -71,8 +69,8 @@ function connectToRoom(username, room, image) {
  * Checks whether the given room has an image associated with it already, and connects if it has
  */
 function checkRoom() {
-    var username = document.getElementById("name").value;
-    var room = document.getElementById("roomNo").value;
+    username = document.getElementById("name").value;
+    room = document.getElementById("roomNo").value;
     $.ajax({
         url: '/checkRoom',
         data: JSON.stringify({room: room}),

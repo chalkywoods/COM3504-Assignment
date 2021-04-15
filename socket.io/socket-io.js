@@ -10,8 +10,8 @@ exports.init = function (io) {
         console.log(`[SOCKET.IO] ${username} joined room ${room}`);
 
         // welcome current user
-        let greeting = "Welcome to canvas " + username + "!"
-        io.to(room).emit('message', room, username, greeting);
+        let greeting = username + "joined the room. Welcome!"
+        io.to(room).emit('message', room, "Chat Bot", greeting);
       });
 
       // listen for chat message
