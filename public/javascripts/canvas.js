@@ -1,7 +1,6 @@
 /**
  * this file contains the functions to control the drawing on the canvas
  */
-let userId;
 let color = 'red', thickness = 4;
 
 /**
@@ -37,6 +36,16 @@ function initCanvas(socket, imageUrl) {
                 drawOnCanvas(ctx, canvas.width, canvas.height, prevX, prevY, currX, currY, color, thickness);
                 // @todo if you draw on the canvas, you may want to let everyone know via socket.io (socket.emit...)  by sending them
                 // room, userId, canvas.width, canvas.height, prevX, prevY, currX, currY, color, thickness
+                let stroke_obj = {
+                    width: canvas.width,
+                    height: canvas.height,
+                    prevX: prevX,
+                    prevY: prevY,
+                    currX: currX,
+                    currY: currY,
+                };
+                let stroke = JSON.stringify(stroke_obj);
+                socket.emit('stroke', room, username, stroke);
             }
         }
     });
@@ -55,6 +64,19 @@ function initCanvas(socket, imageUrl) {
     // and then you call
     //     let ctx = canvas[0].getContext('2d');
     //     drawOnCanvas(ctx, canvasWidth, canvasHeight, x1, y21, x2, y2, color, thickness)
+    // receive a drawing
+    socket.on('stroke', (room, sender_username, stroke) => {
+
+        let stroke_obj = JSON.parse(stroke);
+        let width = stroke_obj.width;
+        let height = stroke_obj.height;
+        let x1 = stroke_obj.prevX;
+        let y1 = stroke_obj.prevY;
+        let x2 = stroke_obj.currX;
+        let y2 = stroke_obj.currY;
+
+        drawOnCanvas(ctx, width, height, x1, y1, x2, y2, color, thickness);
+    });
 
     // this is called when the src of the image is loaded
     // this is an async operation as it may take time
@@ -65,17 +87,17 @@ function initCanvas(socket, imageUrl) {
             if (img.naturalHeight) {
                 clearInterval(poll);
                 // resize the canvas
-                let ratioX=1;
-                let ratioY=1;
+                let ratioX = 1;
+                let ratioY = 1;
                 // if the screen is smaller than the img size we have to reduce the image to fit
-                if (img.clientWidth>window.innerWidth)
-                    ratioX=window.innerWidth/img.clientWidth;
-                if (img.clientHeight> window.innerHeight)
-                    ratioY= img.clientHeight/window.innerHeight;
-                let ratio= Math.min(ratioX, ratioY);
+                if (img.clientWidth > window.innerWidth)
+                    ratioX = window.innerWidth / img.clientWidth;
+                if (img.clientHeight > window.innerHeight)
+                    ratioY = img.clientHeight / window.innerHeight;
+                let ratio = Math.min(ratioX, ratioY);
                 // resize the canvas to fit the screen and the image
-                cvx.width = canvas.width = img.clientWidth*ratio;
-                cvx.height = canvas.height = img.clientHeight*ratio;
+                cvx.width = canvas.width = img.clientWidth * ratio;
+                cvx.height = canvas.height = img.clientHeight * ratio;
                 // draw the image onto the canvas
                 drawImageScaled(img, cvx, ctx);
                 // hide the image element as it is not needed
@@ -120,14 +142,15 @@ function drawImageScaled(img, canvas, ctx) {
  * @param thickness of the line
  */
 function drawOnCanvas(ctx, canvasWidth, canvasHeight, prevX, prevY, currX, currY, color, thickness) {
+    console.log("Drawing!!!")
     //get the ration between the current canvas and the one it has been used to draw on the other comuter
-    let ratioX= canvas.width/canvasWidth;
-    let ratioY= canvas.height/canvasHeight;
+    let ratioX = canvas.width / canvasWidth;
+    let ratioY = canvas.height / canvasHeight;
     // update the value of the points to draw
-    prevX*=ratioX;
-    prevY*=ratioY;
-    currX*=ratioX;
-    currY*=ratioY;
+    prevX *= ratioX;
+    prevY *= ratioY;
+    currX *= ratioX;
+    currY *= ratioY;
     ctx.beginPath();
     ctx.moveTo(prevX, prevY);
     ctx.lineTo(currX, currY);

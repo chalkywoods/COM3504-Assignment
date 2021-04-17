@@ -14,7 +14,7 @@ function init() {
     document.getElementById('chat_interface').style.display = 'none';
 
     // join a room
-    socket.on("joinRoom", (room, joining_username) => {
+    socket.on('joinRoom', (room, joining_username) => {
         if (joining_username === username) {
             // it enters the chat
             hideLoginInterface(room, username);
@@ -25,7 +25,7 @@ function init() {
     });
 
     // receive a chat message
-    socket.on("message", (room, sender_username, msg) => {
+    socket.on('message', (room, sender_username, msg) => {
         let who = sender_username;
         if (who === username) who = 'Me';
         writeOnHistory('<b>' + who + ':</b> ' + msg);
@@ -61,7 +61,7 @@ function connectToRoom(username, room, image) {
     if (!username) username = 'Unknown-' + Math.random();
     socket.emit('create or join', room, username);
     console.log(username + " joined room " + room);
-    initCanvas(socket, image);
+    initCanvas(socket, image, room, username);
     hideLoginInterface(room, username);
 }
 
