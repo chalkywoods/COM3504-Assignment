@@ -1,7 +1,7 @@
 let username = null;
 let room = null;
+let db = null;
 const socket = io();
-
 
 /**
  * called by <body onload>
@@ -25,11 +25,19 @@ function init() {
     });
 
     // receive a chat message
-    socket.on('message', (room, sender_username, msg) => {
+    socket.on('message', (room, sender_username, msg, timestamp) => {
         let who = sender_username;
         if (who === username) who = 'Me';
+        storeChat(room, sender_username, msg, timestamp);
         writeOnHistory('<b>' + who + ':</b> ' + msg);
     });
+
+    // check indexedDB support and initialise
+    if ('indexedDB' in window) {
+        initDatabase();
+    } else {
+        console.log('This browser doesn\t support IndexedDB');
+    }
 }
 
 /**
@@ -49,7 +57,7 @@ function generateRoom() {
  */
 function sendChatText() {
     let msg = document.getElementById('chat_input').value;
-    socket.emit('message', room, username, msg);
+    socket.emit('message', room, username, msg, Date.now());
     document.getElementById('chat_input').value = '';
 }
 
@@ -171,16 +179,17 @@ function hideLoginInterface(room, username) {
  * @param room: Room to create with new image
  */
 function newImage(url, title, desc, author, image, room) {
-    var data = JSON.stringify({
+    var data ={
         title: title,
         description: desc,
         author: author,
-        url: image,
-        rooms: room
-    });
+        url: image
+    }
+    storeImage(room[0], data);
+    data['rooms'] = room;
     $.ajax({
         url: url,
-        data: data,
+        data: JSON.stringify(data),
         contentType: 'application/json',
         type: 'POST',
         success: function (dataR) {
@@ -294,4 +303,66 @@ function displayImages(images) {
         newDiv.onclick = function() {useImage(image)};
         display_div.appendChild(newDiv);
     })
+}
+
+async function initDatabase() {
+    db = await idb.openDB('appdb', 1, {
+        upgrade(db) {
+            let imageStore = db.createObjectStore('images', {
+                keyPath: 'id',
+                autoIncrement: true
+            });
+            imageStore.createIndex('room', 'room')
+
+            let chatStore = db.createObjectStore('chats', {
+                keyPath: 'id',
+                autoIncrement: true
+            });
+            chatStore.createIndex('room', 'room')
+
+            let strokeStore = db.createObjectStore('strokes', {
+                keyPath: 'id',
+                autoIncrement: true
+            });
+            strokeStore.createIndex('room', 'room')
+        }
+    });
+    console.log('DB created');
+}
+
+async function storeImage(room, imageObject) {
+    if (!db)
+        await initDatabase();
+    if (db) {
+        imageObject['room'] = room;
+        db.add('images', imageObject)
+    }
+}
+
+async function storeStroke(room, timestamp, strokeObject) {
+    if (!db)
+        await initDatabase();
+    if (db) {
+        strokeObject['room'] = room;
+        strokeObject['timestamp'] = timestamp;
+        db.add('strokes', strokeObject)
+    }
+}
+
+async function storeChat(room, username, text, timestamp) {
+    var chatObject = {
+        room: room,
+        username: username,
+        text: text,
+        timestamp: timestamp
+    }
+    if (!db)
+        await initDatabase();
+    if (db) {
+        db.add('chats', chatObject)
+    }
+}
+
+async function getImage(room) {
+    let images = await db.getFromIndex('images', 'room', room);
 }

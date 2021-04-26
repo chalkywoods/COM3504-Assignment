@@ -45,7 +45,7 @@ function initCanvas(socket, imageUrl) {
                     currY: currY,
                 };
                 let stroke = JSON.stringify(stroke_obj);
-                socket.emit('stroke', room, username, stroke);
+                socket.emit('stroke', room, username, stroke, Date.now());
             }
         }
     });
@@ -65,7 +65,7 @@ function initCanvas(socket, imageUrl) {
     //     let ctx = canvas[0].getContext('2d');
     //     drawOnCanvas(ctx, canvasWidth, canvasHeight, x1, y21, x2, y2, color, thickness)
     // receive a drawing
-    socket.on('stroke', (room, sender_username, stroke) => {
+    socket.on('stroke', (room, sender_username, stroke, timestamp) => {
 
         let stroke_obj = JSON.parse(stroke);
         let width = stroke_obj.width;
@@ -75,6 +75,7 @@ function initCanvas(socket, imageUrl) {
         let x2 = stroke_obj.currX;
         let y2 = stroke_obj.currY;
 
+        storeStroke(room, timestamp, stroke_obj);
         drawOnCanvas(ctx, width, height, x1, y1, x2, y2, color, thickness);
     });
 

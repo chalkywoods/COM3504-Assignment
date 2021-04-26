@@ -15,14 +15,14 @@ exports.init = function (io) {
       });
 
       // listen for chat message
-      socket.on('message', (room, username, msg) => {
-        io.to(room).emit('message', room, username, msg);
+      socket.on('message', (room, username, msg, timestamp) => {
+        io.to(room).emit('message', room, username, msg, timestamp);
 
         console.log(`[SOCKET.IO] ${username} messaged room ${room}: ${msg}`);
       });
 
-      socket.on('stroke', (room, username, stroke) => {
-        socket.to(room).emit('stroke', room, username, stroke);
+      socket.on('stroke', (room, username, stroke, timestamp) => {
+        socket.to(room).emit('stroke', room, username, stroke, timestamp);
 
         console.log(`[SOCKET.IO] ${username} is drawing in room ${room}`);
       });
