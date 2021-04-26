@@ -43,9 +43,12 @@ function initCanvas(socket, imageUrl) {
                     prevY: prevY,
                     currX: currX,
                     currY: currY,
-                };
+                }
+                let timestamp = Date.now()
+                storeStroke(room, timestamp, stroke_obj);;
+
                 let stroke = JSON.stringify(stroke_obj);
-                socket.emit('stroke', room, username, stroke, Date.now());
+                socket.emit('stroke', room, username, stroke, timestamp);
             }
         }
     });
@@ -66,7 +69,7 @@ function initCanvas(socket, imageUrl) {
     //     drawOnCanvas(ctx, canvasWidth, canvasHeight, x1, y21, x2, y2, color, thickness)
     // receive a drawing
     socket.on('stroke', (room, sender_username, stroke, timestamp) => {
-
+        console.log(room);
         let stroke_obj = JSON.parse(stroke);
         let width = stroke_obj.width;
         let height = stroke_obj.height;
@@ -110,7 +113,7 @@ function initCanvas(socket, imageUrl) {
 
 /**
  * called when it is required to draw the image on the canvas. We have resized the canvas to the same image size
- * so ti is simpler to draw later
+ * so ti is simpler to draw later. Any cached strokes for the image are drawn.
  * @param img
  * @param canvas
  * @param ctx
@@ -123,7 +126,20 @@ function drawImageScaled(img, canvas, ctx) {
     let x = (canvas.width / 2) - (img.width / 2) * scale;
     let y = (canvas.height / 2) - (img.height / 2) * scale;
     ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
-
+    getStrokes(room)
+        .then(function(strokes) {
+            strokes.forEach(stroke => drawOnCanvas(
+                ctx,
+                stroke.width,
+                stroke.height,
+                stroke.prevX,
+                stroke.prevY,
+                stroke.currX,
+                stroke.currY,
+                color,
+                thickness
+            ));
+        })
 
 }
 

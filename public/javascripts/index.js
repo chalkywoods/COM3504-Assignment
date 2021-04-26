@@ -71,6 +71,7 @@ function connectToRoom(username, room, image) {
     console.log(username + " joined room " + room);
     initCanvas(socket, image, room, username);
     hideLoginInterface(room, username);
+    loadCachedRoom(room);
 }
 
 /**
@@ -319,12 +320,14 @@ async function initDatabase() {
                 autoIncrement: true
             });
             chatStore.createIndex('room', 'room')
+            chatStore.createIndex('roomTime', ['room', 'timestamp'], {unique: true})
 
             let strokeStore = db.createObjectStore('strokes', {
                 keyPath: 'id',
                 autoIncrement: true
             });
             strokeStore.createIndex('room', 'room')
+            strokeStore.createIndex('roomTime', ['room', 'timestamp'], {unique: true})
         }
     });
     console.log('DB created');
@@ -345,7 +348,7 @@ async function storeStroke(room, timestamp, strokeObject) {
     if (db) {
         strokeObject['room'] = room;
         strokeObject['timestamp'] = timestamp;
-        db.add('strokes', strokeObject)
+        db.put('strokes', strokeObject)
     }
 }
 
@@ -359,10 +362,25 @@ async function storeChat(room, username, text, timestamp) {
     if (!db)
         await initDatabase();
     if (db) {
-        db.add('chats', chatObject)
+        db.put('chats', chatObject)
     }
 }
 
 async function getImage(room) {
-    let images = await db.getFromIndex('images', 'room', room);
+    return db.getFromIndex('images', 'room', room);
+}
+
+async function getChats(room) {
+    return db.getAllFromIndex('chats', 'room', room);
+}
+
+async function getStrokes(room) {
+    return db.getAllFromIndex('strokes', 'room', room);
+}
+
+async function loadCachedRoom(room) {
+    getChats(room)
+        .then(function(chats) {
+            chats.forEach(chat => writeOnHistory('<b>' + chat.username + ':</b> ' + chat.text));
+        })
 }
