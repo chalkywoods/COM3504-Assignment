@@ -71,7 +71,7 @@ function connectToRoom(username, room, image) {
     console.log(username + " joined room " + room);
     initCanvas(socket, image, room, username);
     hideLoginInterface(room, username);
-    loadCachedRoom(room);
+    loadCachedChats(room);
 }
 
 /**
@@ -87,6 +87,8 @@ function checkRoom() {
         type: 'POST',
         success: function (dataR) {
             console.log("Image found");
+            delete dataR['_id'];
+            storeImage(room, dataR);
             connectToRoom(username, room, dataR.url);
         },
         error: function (xhr, status, error) {
@@ -110,27 +112,27 @@ function showImageChoice() {
  * @returns false
  */
 function imageSelector(method) {
-    var url =  document.getElementById('imageURL');
-    var upload =  document.getElementById('imageUpload');
-    var select =  document.getElementById('imageSelect');
-    var attributes =  document.getElementById('imageAttributes');
-    var type = document.getElementById('imageType');
-    var submit = document.getElementById('upload');
-    if (method == 'url') {
+    const url =  document.getElementById('imageURL');
+    const upload =  document.getElementById('imageUpload');
+    const select =  document.getElementById('imageSelect');
+    const attributes =  document.getElementById('imageAttributes');
+    const type = document.getElementById('imageType');
+    const submit = document.getElementById('upload');
+    if (method === 'url') {
         url.style.display = 'block';
         upload.style.display = 'none';
         select.style.display = 'none';
         attributes.style.display = 'block';
         submit.style.display = 'block'
         type.value = 'imageURL'
-    } else if (method == 'upload') {
+    } else if (method === 'upload') {
         url.style.display = 'none';
         upload.style.display = 'block';
         select.style.display = 'none';
         attributes.style.display = 'block';
         submit.style.display = 'block'
         type.value = 'imageUpload'
-    } else if (method == 'select') {
+    } else if (method === 'select') {
         url.style.display = 'none';
         upload.style.display = 'none';
         select.style.display = 'block';
@@ -180,7 +182,7 @@ function hideLoginInterface(room, username) {
  * @param room: Room to create with new image
  */
 function newImage(url, title, desc, author, image, room) {
-    var data ={
+    const data ={
         title: title,
         description: desc,
         author: author,
@@ -203,44 +205,68 @@ function newImage(url, title, desc, author, image, room) {
 }
 
 /**
- * Upload in image in base64
- * @param title: Image title
- * @param description: Image description
- * @param author: Image author
- * @param room: Room to create with new image
- */
-function uploadImage(title, description, author, room) {
-    var reader = new FileReader();
-    reader.addEventListener("load", function () {
-        newImage('/upload', title, description, author, reader.result, [room]);
-    }, false);
-    reader.readAsDataURL(document.getElementById("image_upload").files[0])
-}
-
-/**
  * Submit an image URL or file for creation
  */
 function submitImage() {
-    var type = document.getElementById('imageType').value;
-    var room = document.getElementById('roomNo').value;
-    var title = document.getElementById('title').value;
-    var description = document.getElementById('desc').value;
-    var author = document.getElementById('author').value;
+    const type = document.getElementById('imageType').value;
+    const room = document.getElementById('roomNo').value;
+    const title = document.getElementById('title').value;
+    const description = document.getElementById('desc').value;
+    const author = document.getElementById('author').value;
     if (type === "imageURL") {
-        var imageURL = document.getElementById('image_url').value;
-        newImage('/upload', title, description, author, imageURL, [room]);
+        const imageURL = document.getElementById('image_url').value;
+        base64FromUrl(imageURL)
+            .then(function(imageData) {
+                newImage('/upload', title, description, author, imageData, [room]);
+            })
     } else if (type === "imageUpload") {
-        uploadImage(title, description, author, room);
+        base64FromFile()
+            .then(function(imageData) {
+                newImage('/upload', title, description, author, imageData, [room]);
+            })
     } else {
         throw ReferenceError("image type not recognised");
     }
 }
 
 /**
+ * Load an image in base64 format from image url
+ * @param url: url of image
+ * @returns {Promise<unknown>}
+ */
+
+async function base64FromUrl(url) {
+    const data = await fetch(url);
+    const blob = await data.blob();
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(blob);
+        reader.onloadend = () => {
+            const base64data = reader.result;
+            resolve(base64data);
+        }
+    });
+}
+
+/**
+ * Load image in base64 format from image file upload field
+ */
+async function base64FromFile() {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(document.getElementById("image_upload").files[0])
+        reader.onloadend = () => {
+            const base64data = reader.result;
+            resolve(base64data);
+        }
+    })
+}
+
+/**
  * Get images by the given author
  */
 function getImageByAuthor() {
-    var query = document.getElementById('author_search').value;
+    const query = document.getElementById('author_search').value;
     $.ajax({
         url: "/search",
         data: JSON.stringify({author: query}),
@@ -260,7 +286,7 @@ function getImageByAuthor() {
  * @param image: The image to use
  */
 function useImage(image) {
-    var data = {
+    const data = {
         id: image._id,
         room: document.getElementById('roomNo').value
     }
@@ -283,17 +309,17 @@ function useImage(image) {
  * @param images
  */
 function displayImages(images) {
-    var display_div = document.getElementById('show_images');
+    let display_div = document.getElementById('show_images');
     display_div.innerHTML = '';
     images.forEach(function(image) {
-        var newDiv = document.createElement("DIV");
-        var title = document.createElement("H3");
+        let newDiv = document.createElement("DIV");
+        let title = document.createElement("H3");
         title.innerText = image.title;
-        var description = document.createElement("P");
+        let description = document.createElement("P");
         description.innerText = image.description;
-        var author = document.createElement("P");
+        let author = document.createElement("P");
         author.innerText = "Author: ".concat(image.author);
-        var thumbnail = document.createElement("IMG");
+        let thumbnail = document.createElement("IMG");
         thumbnail.src = image.url;
         thumbnail.width = "300";
         newDiv.appendChild(title);
@@ -314,6 +340,7 @@ async function initDatabase() {
                 autoIncrement: true
             });
             imageStore.createIndex('room', 'room')
+            imageStore.createIndex('uniqueImage', ['room', 'title', 'description', 'author', 'url'], {unique: true})
 
             let chatStore = db.createObjectStore('chats', {
                 keyPath: 'id',
@@ -338,7 +365,7 @@ async function storeImage(room, imageObject) {
         await initDatabase();
     if (db) {
         imageObject['room'] = room;
-        db.add('images', imageObject)
+        db.put('images', imageObject)
     }
 }
 
@@ -353,7 +380,7 @@ async function storeStroke(room, timestamp, strokeObject) {
 }
 
 async function storeChat(room, username, text, timestamp) {
-    var chatObject = {
+    const chatObject = {
         room: room,
         username: username,
         text: text,
@@ -378,9 +405,26 @@ async function getStrokes(room) {
     return db.getAllFromIndex('strokes', 'room', room);
 }
 
-async function loadCachedRoom(room) {
+async function loadCachedChats(room) {
     getChats(room)
         .then(function(chats) {
             chats.forEach(chat => writeOnHistory('<b>' + chat.username + ':</b> ' + chat.text));
+        })
+}
+
+async function loadCachedStrokes(room, context) {
+    getStrokes(room)
+        .then(function(strokes) {
+            strokes.forEach(stroke => drawOnCanvas(
+                context,
+                stroke.width,
+                stroke.height,
+                stroke.prevX,
+                stroke.prevY,
+                stroke.currX,
+                stroke.currY,
+                color,
+                thickness
+            ));
         })
 }

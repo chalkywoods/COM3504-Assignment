@@ -126,21 +126,7 @@ function drawImageScaled(img, canvas, ctx) {
     let x = (canvas.width / 2) - (img.width / 2) * scale;
     let y = (canvas.height / 2) - (img.height / 2) * scale;
     ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
-    getStrokes(room)
-        .then(function(strokes) {
-            strokes.forEach(stroke => drawOnCanvas(
-                ctx,
-                stroke.width,
-                stroke.height,
-                stroke.prevX,
-                stroke.prevY,
-                stroke.currX,
-                stroke.currY,
-                color,
-                thickness
-            ));
-        })
-
+    loadCachedStrokes(room, ctx);
 }
 
 

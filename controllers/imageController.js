@@ -61,7 +61,7 @@ exports.getImage = async (req, res) => {
 exports.checkRoom = async (req, res) => {
     const { room } = req.body;
     try {
-        const image = await Image.findOne({ rooms: room}, '_id url');
+        const image = await Image.findOne({ rooms: room}, 'title description author url');
         if(!image) {
             res.sendStatus(404);
             return;
