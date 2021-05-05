@@ -9,6 +9,17 @@ const socket = io();
  * plus the associated actions
  */
 function init() {
+    // register a service worker
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js').then(function (registration) {
+            // registration successful
+            console.log('ServiceWorker registration successful with scope: ', registration.scope);
+        }, function (err) {
+            // registration failed
+            console.log('ServiceWorker registration failed: ', err);
+        });
+    }
+
     // it sets up the interface so that userId and room are selected
     document.getElementById('initial_form').style.display = 'block';
     document.getElementById('chat_interface').style.display = 'none';
@@ -82,7 +93,7 @@ function checkRoom() {
     room = document.getElementById("roomNo").value;
     $.ajax({
         url: '/checkRoom',
-        data: JSON.stringify({room: room}),
+        data: JSON.stringify({ room: room }),
         contentType: 'application/json',
         type: 'POST',
         success: function (dataR) {
@@ -112,10 +123,10 @@ function showImageChoice() {
  * @returns false
  */
 function imageSelector(method) {
-    const url =  document.getElementById('imageURL');
-    const upload =  document.getElementById('imageUpload');
-    const select =  document.getElementById('imageSelect');
-    const attributes =  document.getElementById('imageAttributes');
+    const url = document.getElementById('imageURL');
+    const upload = document.getElementById('imageUpload');
+    const select = document.getElementById('imageSelect');
+    const attributes = document.getElementById('imageAttributes');
     const type = document.getElementById('imageType');
     const submit = document.getElementById('upload');
     if (method === 'url') {
@@ -182,7 +193,7 @@ function hideLoginInterface(room, username) {
  * @param room: Room to create with new image
  */
 function newImage(url, title, desc, author, image, room) {
-    const data ={
+    const data = {
         title: title,
         description: desc,
         author: author,
@@ -216,12 +227,12 @@ function submitImage() {
     if (type === "imageURL") {
         const imageURL = document.getElementById('image_url').value;
         base64FromUrl(imageURL)
-            .then(function(imageData) {
+            .then(function (imageData) {
                 newImage('/upload', title, description, author, imageData, [room]);
             })
     } else if (type === "imageUpload") {
         base64FromFile()
-            .then(function(imageData) {
+            .then(function (imageData) {
                 newImage('/upload', title, description, author, imageData, [room]);
             })
     } else {
@@ -269,7 +280,7 @@ function getImageByAuthor() {
     const query = document.getElementById('author_search').value;
     $.ajax({
         url: "/search",
-        data: JSON.stringify({author: query}),
+        data: JSON.stringify({ author: query }),
         contentType: 'application/json',
         type: 'POST',
         success: function (dataR) {
@@ -311,7 +322,7 @@ function useImage(image) {
 function displayImages(images) {
     let display_div = document.getElementById('show_images');
     display_div.innerHTML = '';
-    images.forEach(function(image) {
+    images.forEach(function (image) {
         let newDiv = document.createElement("DIV");
         let title = document.createElement("H3");
         title.innerText = image.title;
@@ -327,7 +338,7 @@ function displayImages(images) {
         newDiv.appendChild(author);
         newDiv.appendChild(thumbnail);
         newDiv.id = "imageDiv";
-        newDiv.onclick = function() {useImage(image)};
+        newDiv.onclick = function () { useImage(image) };
         display_div.appendChild(newDiv);
     })
 }
@@ -340,21 +351,21 @@ async function initDatabase() {
                 autoIncrement: true
             });
             imageStore.createIndex('room', 'room')
-            imageStore.createIndex('uniqueImage', ['room', 'title', 'description', 'author', 'url'], {unique: true})
+            imageStore.createIndex('uniqueImage', ['room', 'title', 'description', 'author', 'url'], { unique: true })
 
             let chatStore = db.createObjectStore('chats', {
                 keyPath: 'id',
                 autoIncrement: true
             });
             chatStore.createIndex('room', 'room')
-            chatStore.createIndex('roomTime', ['room', 'timestamp'], {unique: true})
+            chatStore.createIndex('roomTime', ['room', 'timestamp'], { unique: true })
 
             let strokeStore = db.createObjectStore('strokes', {
                 keyPath: 'id',
                 autoIncrement: true
             });
             strokeStore.createIndex('room', 'room')
-            strokeStore.createIndex('roomTime', ['room', 'timestamp'], {unique: true})
+            strokeStore.createIndex('roomTime', ['room', 'timestamp'], { unique: true })
         }
     });
     console.log('DB created');
@@ -407,14 +418,14 @@ async function getStrokes(room) {
 
 async function loadCachedChats(room) {
     getChats(room)
-        .then(function(chats) {
+        .then(function (chats) {
             chats.forEach(chat => writeOnHistory('<b>' + chat.username + ':</b> ' + chat.text));
         })
 }
 
 async function loadCachedStrokes(room, context) {
     getStrokes(room)
-        .then(function(strokes) {
+        .then(function (strokes) {
             strokes.forEach(stroke => drawOnCanvas(
                 context,
                 stroke.width,
