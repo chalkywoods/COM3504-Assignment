@@ -15,7 +15,7 @@
 </head>
 
 <body onload="init()">
-    <div id="initial_form" style="display: block">
+    <div id="initial_form">
         <h1>
             <%= title %>
         </h1>
@@ -78,24 +78,21 @@
         </div>
     </div>
     <div id="chat_interface" class="hidden">
-        <div>
-            <p>
-            <div id="who_you_are" style="display: inline" style="height: 10vh"></div>, you are in room: <div
-                id="in_room" style="display: inline"></div>
-        </div>
+        <p>
+            <span id="who_you_are"></span>, you are in room: <span id="in_room"></span>
         </p>
-        <div style="width: 100%; height: 50vh">
+        <div style="width: 100%; height: 55%">
             <img id="image" height="100%">
             <canvas id="canvas"></canvas>
         </div>
-        <div id="history" style="height: 35vh" class="boxed scrolling"></div>
-        <div id="input" style="height: 5vh" class=" boxed">
+        <div id="history" class="boxed scrolling"></div>
+        <div id="input" class=" boxed">
             <form onsubmit="return false;" style="width: 100%">
-                <p>
-                    <label for="name"> chat: </label>
-                    <input type="text" id="chat_input" name="chat_input" style="width: 80%">
+                <label for="name">Write a message: </label>
+                <div class="chat-wrapper">
+                    <input type="text" id="chat_input" name="chat_input">
                     <button id="chat_send" onclick="sendChatText()">Send</button>
-                </p>
+                </div>
             </form>
         </div>
     </div>
