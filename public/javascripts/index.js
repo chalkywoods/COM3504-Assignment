@@ -10,8 +10,8 @@ const socket = io();
  */
 function init() {
     // it sets up the interface so that userId and room are selected
-    document.getElementById('initial_form').style.display = 'block';
-    document.getElementById('chat_interface').style.display = 'none';
+    document.getElementById('initial_form').classList.remove('hidden');
+    document.getElementById('chat_interface').classList.add('hidden');
 
     // join a room
     socket.on('joinRoom', (room, joining_username) => {
@@ -102,8 +102,8 @@ function checkRoom() {
  * shows the image selection form
  */
 function showImageChoice() {
-    document.getElementById('connect').style.display = 'none';
-    document.getElementById('image_form').style.display = 'block';
+    document.getElementById('connect').classList.add('hidden');
+    document.getElementById('image_form').classList.remove('hidden');
 }
 
 /**
@@ -165,9 +165,9 @@ function writeOnHistory(text) {
  * @param username the user name
  */
 function hideLoginInterface(room, username) {
-    document.getElementById('initial_form').style.display = 'none';
-    document.getElementById('image_form').style.display = 'none';
-    document.getElementById('chat_interface').style.display = 'block';
+    document.getElementById('initial_form').classList.add('hidden');
+    document.getElementById('image_form').classList.add('hidden');
+    document.getElementById('chat_interface').classList.remove('hidden');
     document.getElementById('who_you_are').innerHTML = username;
     document.getElementById('in_room').innerHTML = ' ' + room;
 }
