@@ -1,0 +1,239 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "SpyChat",
+    "description": "Chat and image annotation rooms for spies.",
+    "version": "0.1.3",
+    "termsOfService": "someurl",
+    "contact": {
+      "name": "Group G8"
+    },
+    "license": {
+      "name": "Apache 2.0",
+      "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Development server."
+    }
+  ],
+  "paths": {
+    "/": {
+    "get": {
+      "summary": "Get homepage",
+      "description": "Landing page for starting chats",
+      "responses": {
+        "200": {
+          "description": "Page fetched"
+        }
+      }
+    }
+  },
+    "/checkRoom": {
+      "post": {
+        "summary": "Checks whether a room exists.",
+        "description": "Checks whether a room code already has an image associated with it, and returns the image if it has",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "room": {
+                    "$ref": "#/components/schemas/Room"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Return an image",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImageWithId"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existing image found for this room"
+          },
+          "500": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/upload": {
+      "post": {
+        "summary": "Create a new room with a new image",
+        "description": "Uploads a new image to the server and creates a new room associated with it",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImageWithRoom"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Upload successful"
+          },
+          "422": {
+            "description": "Invalid data, unable to save"
+          },
+          "500": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/search": {
+      "post": {
+        "summary": "Search for images by author name",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "author": {
+                    "type": "string",
+                    "description": "Author name to search for"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Search successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ImageWithId"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/add": {
+      "post": {
+        "summary": "Create a new room with an existing image",
+        "description": "Create a new room with the provided image id and room code",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "_id": {
+                    "$ref": "#/components/schemas/Id"
+                  },
+                  "room": {
+                    "$ref": "#/components/schemas/Room"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Room created"
+          },
+          "404": {
+            "description": "Image not found"
+          },
+          "500": {
+            "description": "Internal error"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Image": {
+        "type": "object",
+        "description": "Image data and metadata",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "author": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "description": "External image URL or base64 data URL."
+          }
+        }
+      },
+      "Room": {
+        "description": "Unique chatroom code.",
+        "type": "string"
+      },
+      "Id": {
+        "description": "Unique image ID",
+        "type": "string"
+      },
+      "ImageWithId": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Image"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "_id": {
+                "$ref": "#/components/schemas/Id"
+              }
+            }
+          }
+        ]
+      },
+      "ImageWithRoom": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Image"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "room": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Room"
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

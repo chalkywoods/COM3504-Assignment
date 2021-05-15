@@ -5,6 +5,8 @@ const cookieParser = require('cookie-parser');
 const logger = require('morgan');
 const bodyParser = require('body-parser');
 const imagesDb = require('./databases/images');
+const swaggerUi = require('swagger-ui-express');
+const openApiDocumentation = require('./openApiDocumentation.json');
 
 const indexRouter = require('./routes/index');
 
@@ -21,6 +23,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openApiDocumentation));
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
