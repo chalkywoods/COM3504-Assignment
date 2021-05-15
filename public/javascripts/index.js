@@ -32,6 +32,11 @@ function init() {
         writeOnHistory('<b>' + who + ':</b> ' + msg);
     });
 
+    socket.on('change_room', (room, toRoom, timestamp) => {
+        storeMove(room, toRoom, timestamp);
+        changeRoom(toRoom);
+    });
+
     // check indexedDB support and initialise
     if ('indexedDB' in window) {
         initDatabase();
@@ -71,23 +76,28 @@ function connectToRoom(username, room, image) {
     console.log(username + " joined room " + room);
     initCanvas(socket, image, room, username);
     hideLoginInterface(room, username);
+    let history = document.getElementById('history');
+    history.innerHTML = "";
     loadCachedChats(room);
 }
 
 /**
  * Checks whether the given room has an image associated with it already, and connects if it has
  */
-function checkRoom() {
+function checkRoom(checking=null) {
     username = document.getElementById("name").value;
-    room = document.getElementById("roomNo").value;
+    if (checking === null) {
+        checking = document.getElementById("roomNo").value;
+    }
     $.ajax({
         url: '/checkRoom',
-        data: JSON.stringify({room: room}),
+        data: JSON.stringify({room: checking}),
         contentType: 'application/json',
         type: 'POST',
         success: function (dataR) {
             console.log("Image found");
             delete dataR['_id'];
+            room = checking;
             storeImage(room, dataR);
             connectToRoom(username, room, dataR.url);
         },
@@ -101,9 +111,11 @@ function checkRoom() {
 /**
  * shows the image selection form
  */
-function showImageChoice() {
+function showImageChoice(moving) {
     document.getElementById('connect').classList.add('hidden');
     document.getElementById('image_form').classList.remove('hidden');
+    var button = document.getElementById('upload');
+    button.onclick = function() { submitImage(moving); };
 }
 
 /**
@@ -159,6 +171,23 @@ function writeOnHistory(text) {
     document.getElementById('chat_input').value = '';
 }
 
+function sendChangeRoom(toRoom) {
+    hideLoginInterface(room, username);
+    socket.emit("change_room", room, toRoom, Date.now())
+}
+
+function changeRoom(room) {
+    let history = document.getElementById('history');
+    let paragraph = document.createElement('p');
+    let button = document.createElement('button');
+    button.onclick = function() {checkRoom(room)};
+    button.innerHTML = `Move to room ${room}`;
+    paragraph.appendChild(button);
+    history.appendChild(paragraph);
+    // scroll to the last element
+    history.scrollTop = history.scrollHeight;
+}
+
 /**
  * it hides the initial form and shows the chat
  * @param room the selected room
@@ -180,53 +209,67 @@ function hideLoginInterface(room, username) {
  * @param author: Image author
  * @param image: Image URL, can be a link or base64
  * @param room: Room to create with new image
+ * @param callback: Success function
  */
 function newImage(url, title, desc, author, image, room) {
-    const data ={
-        title: title,
-        description: desc,
-        author: author,
-        url: image
-    }
-    storeImage(room[0], data);
-    data['rooms'] = room;
-    $.ajax({
-        url: url,
-        data: JSON.stringify(data),
-        contentType: 'application/json',
-        type: 'POST',
-        success: function (dataR) {
-            checkRoom();
-        },
-        error: function (xhr, status, error) {
-            alert('Error: ' + error.message);
+    return new Promise((resolve, reject) => {
+        const data = {
+            title: title,
+            description: desc,
+            author: author,
+            url: image
         }
-    });
+        storeImage(room[0], data);
+        data['rooms'] = room;
+        $.ajax({
+            url: url,
+            data: JSON.stringify(data),
+            contentType: 'application/json',
+            type: 'POST',
+            success: function (dataR) {
+                resolve(room[0]);
+            },
+            error: function (xhr, status, error) {
+                alert('Error: ' + error.message);
+                reject(error);
+            }
+        });
+    })
 }
 
 /**
  * Submit an image URL or file for creation
  */
-function submitImage() {
+function submitImage(moving) {
     const type = document.getElementById('imageType').value;
-    const room = document.getElementById('roomNo').value;
+    var newRoom;
+    if (moving) {
+        newRoom = generateRoom();
+    } else {
+        room = document.getElementById('roomNo').value;
+        newRoom = room;
+    }
     const title = document.getElementById('title').value;
     const description = document.getElementById('desc').value;
+    var image;
     const author = document.getElementById('author').value;
     if (type === "imageURL") {
         const imageURL = document.getElementById('image_url').value;
-        base64FromUrl(imageURL)
-            .then(function(imageData) {
-                newImage('/upload', title, description, author, imageData, [room]);
-            })
+        image = base64FromUrl(imageURL)
     } else if (type === "imageUpload") {
-        base64FromFile()
-            .then(function(imageData) {
-                newImage('/upload', title, description, author, imageData, [room]);
-            })
+        image = base64FromFile()
     } else {
         throw ReferenceError("image type not recognised");
     }
+    image.then(function(imageData) {
+        newImage('/upload', title, description, author, imageData, [newRoom]).then(newRoom => {
+            if (moving) {
+                sendChangeRoom(newRoom);
+            } else {
+                checkRoom(newRoom)
+            }
+        });
+    })
 }
 
 /**
@@ -333,28 +376,38 @@ function displayImages(images) {
 }
 
 async function initDatabase() {
-    db = await idb.openDB('appdb', 1, {
-        upgrade(db) {
-            let imageStore = db.createObjectStore('images', {
-                keyPath: 'id',
-                autoIncrement: true
-            });
-            imageStore.createIndex('room', 'room')
-            imageStore.createIndex('uniqueImage', ['room', 'title', 'description', 'author', 'url'], {unique: true})
+    db = await idb.openDB('appdb', 2, {
+        upgrade(db, oldVersion) {
+            if (oldVersion < 1) {
+                let imageStore = db.createObjectStore('images', {
+                    keyPath: 'id',
+                    autoIncrement: true
+                });
+                imageStore.createIndex('room', 'room')
+                imageStore.createIndex('uniqueImage', ['room', 'title', 'description', 'author', 'url'], {unique: true})
 
-            let chatStore = db.createObjectStore('chats', {
-                keyPath: 'id',
-                autoIncrement: true
-            });
-            chatStore.createIndex('room', 'room')
-            chatStore.createIndex('roomTime', ['room', 'timestamp'], {unique: true})
+                let chatStore = db.createObjectStore('chats', {
+                    keyPath: 'id',
+                    autoIncrement: true
+                });
+                chatStore.createIndex('room', 'room')
+                chatStore.createIndex('roomTime', ['room', 'timestamp'], {unique: true})
 
-            let strokeStore = db.createObjectStore('strokes', {
-                keyPath: 'id',
-                autoIncrement: true
-            });
-            strokeStore.createIndex('room', 'room')
-            strokeStore.createIndex('roomTime', ['room', 'timestamp'], {unique: true})
+                let strokeStore = db.createObjectStore('strokes', {
+                    keyPath: 'id',
+                    autoIncrement: true
+                });
+                strokeStore.createIndex('room', 'room')
+                strokeStore.createIndex('roomTime', ['room', 'timestamp'], {unique: true})
+            }
+            if (oldVersion < 2) {
+                let moveStore = db.createObjectStore('moves', {
+                    keyPath: 'id',
+                    autoIncrement: true
+                });
+                moveStore.createIndex('room', 'room')
+                moveStore.createIndex('roomTime', ['room', 'timestamp'], {unique: true})
+            }
         }
     });
     console.log('DB created');
@@ -393,6 +446,20 @@ async function storeChat(room, username, text, timestamp) {
     }
 }
 
+async function storeMove(room, toRoom, timestamp) {
+    const moveObject = {
+        room: room,
+        toRoom: toRoom,
+        timestamp: timestamp
+    }
+    if (!db)
+        await initDatabase();
+    if (db) {
+        db.put('moves', moveObject)
+    }
+}
+
+
 async function getImage(room) {
     return db.getFromIndex('images', 'room', room);
 }
@@ -401,15 +468,26 @@ async function getChats(room) {
     return db.getAllFromIndex('chats', 'room', room);
 }
 
+async function getMoves(room) {
+    return db.getAllFromIndex('moves', 'room', room);
+}
+
 async function getStrokes(room) {
     return db.getAllFromIndex('strokes', 'room', room);
 }
 
 async function loadCachedChats(room) {
-    getChats(room)
-        .then(function(chats) {
-            chats.forEach(chat => writeOnHistory('<b>' + chat.username + ':</b> ' + chat.text));
-        })
+    var chats = await getChats(room);
+    var moves = await getMoves(room);
+    var messages = chats.concat(moves);
+    messages.sort(compareTimes);
+    messages.forEach(message =>  {
+        if (message.hasOwnProperty("toRoom")) {
+            changeRoom(message.toRoom);
+        } else {
+            writeOnHistory('<b>' + message.username + ':</b> ' + message.text);
+        }
+    })
 }
 
 async function loadCachedStrokes(room, context) {
@@ -427,4 +505,8 @@ async function loadCachedStrokes(room, context) {
                 thickness
             ));
         })
+}
+
+function compareTimes(a, b) {
+    return a.timestamp - b.timestamp;
 }
