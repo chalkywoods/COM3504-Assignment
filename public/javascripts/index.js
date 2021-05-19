@@ -116,6 +116,7 @@ function showImageChoice(moving) {
     document.getElementById('image_form').classList.remove('hidden');
     var button = document.getElementById('upload');
     button.onclick = function() { submitImage(moving); };
+    imageSelector('url');
 }
 
 /**
@@ -180,6 +181,7 @@ function changeRoom(room) {
     let history = document.getElementById('history');
     let paragraph = document.createElement('p');
     let button = document.createElement('button');
+    button.className = "move_room_button"
     button.onclick = function() {checkRoom(room)};
     button.innerHTML = `Move to room ${room}`;
     paragraph.appendChild(button);
@@ -279,8 +281,13 @@ function submitImage(moving) {
  */
 
 async function base64FromUrl(url) {
-    const data = await fetch(url);
-    const blob = await data.blob();
+    const blob = await fetch(url, {mode: "cors"})
+        .then(data => data.blob())
+        .catch(e => {
+            if (e instanceof TypeError) {
+                alert("Invalid image URL");
+            }
+        })
     return new Promise((resolve) => {
         const reader = new FileReader();
         reader.readAsDataURL(blob);
@@ -419,6 +426,7 @@ async function storeImage(room, imageObject) {
     if (db) {
         imageObject['room'] = room;
         db.put('images', imageObject)
+            .catch(err => console.log("Image already cached"))
     }
 }
 
@@ -461,19 +469,35 @@ async function storeMove(room, toRoom, timestamp) {
 
 
 async function getImage(room) {
-    return db.getFromIndex('images', 'room', room);
+    if (!db)
+        await initDatabase();
+    if (db) {
+        return db.getFromIndex('images', 'room', room);
+    }
 }
 
 async function getChats(room) {
-    return db.getAllFromIndex('chats', 'room', room);
+    if (!db)
+        await initDatabase();
+    if (db) {
+        return db.getAllFromIndex('chats', 'room', room);
+    }
 }
 
 async function getMoves(room) {
-    return db.getAllFromIndex('moves', 'room', room);
+    if (!db)
+        await initDatabase();
+    if (db) {
+        return db.getAllFromIndex('moves', 'room', room);
+    }
 }
 
 async function getStrokes(room) {
-    return db.getAllFromIndex('strokes', 'room', room);
+    if (!db)
+        await initDatabase();
+    if (db) {
+        return db.getAllFromIndex('strokes', 'room', room);
+    }
 }
 
 async function loadCachedChats(room) {
