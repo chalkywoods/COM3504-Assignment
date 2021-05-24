@@ -1,0 +1,68 @@
+// using the module pattern not to pollute namespace with global variables
+(() => {
+    const API_KEY = 'AIzaSyAG7w627q-djB4gTTahssufwNOImRqdYKM';
+
+    // array keeping the annotation rectangle elements
+    const rectangles = [];
+
+    const canvas = document.getElementById('canvas');
+
+    let startPos = { x: 0, y: 0 };
+
+    let isDrawing = false;
+
+    const handleMouseDown = (event) => {
+        // update start position
+        startPos.x = event.offsetX;
+        startPos.y = event.offsetY;
+
+        isDrawing = true;
+
+        // register rectangle resize event
+        window.addEventListener('mousemove', handleRectangleResize);
+    };
+
+    const handleRectangleResize = (event) => {
+        if(!isDrawing)
+            return;
+
+        const canvasWidth = canvas.width;
+        const canvasHeight = canvas.height;
+        const canvasLeft = canvas.offsetLeft;
+        const canvasTop = canvas.offsetTop;
+
+        // compute current mouse position considering canvas boundaries
+        const mousePos = {
+            x: Math.min(Math.max(event.pageX - canvasLeft, 0), canvasWidth),
+            y: Math.min(Math.max(event.pageY - canvasTop, 0), canvasHeight)
+        };
+
+        // compute coords of the top left edge of the rectangle
+        const x = Math.min(mousePos.x, startPos.x);
+        const y = Math.min(mousePos.y, startPos.y);
+
+        // compute width and height of rectangle
+        const width = Math.abs(mousePos.x - startPos.x);
+        const height = Math.abs(mousePos.y - startPos.y);
+
+        const rectElement = rectangles[rectangles.length - 1];
+
+        rectElement.style.left = canvasLeft + x + 'px';
+        rectElement.style.top = canvasTop + y + 'px';
+
+        rectElement.style.width = width + 'px';
+        rectElement.style.height = height + 'px';
+    };
+
+    const handleMouseUp = () => {
+        isDrawing = false;
+
+        // remove resize listener
+        window.removeEventListener('mousemove', handleRectangleResize);
+    };
+
+    // add listeners to canvas
+    canvas.addEventListener('mousedown', handleMouseDown);
+    canvas.addEventListener('mouseup', handleMouseUp);
+
+})();

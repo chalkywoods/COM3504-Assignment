@@ -2,7 +2,6 @@ let username = null;
 let room = null;
 let db = null;
 const socket = io();
-
 /**
  * called by <body onload>
  * it initialises the interface and the expected socket messages

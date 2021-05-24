@@ -3,6 +3,10 @@
  */
 let color = 'red', thickness = 4;
 
+// variable indicating whether the user is drawing or annotating
+// possible values: 'drawing' | 'annotating'
+let mode = 'annotating';
+
 /**
  * it inits the image canvas to draw on. It sets up the events to respond to (click, mouse on, etc.)
  * it is also the place where the data should be sent  via socket.io
@@ -20,6 +24,9 @@ function initCanvas(socket, imageUrl) {
 
     // event on the canvas when the mouse is on it
     canvas.on('mousemove mousedown mouseup mouseout', function (e) {
+        if(mode !== 'drawing')
+            return;
+
         prevX = currX;
         prevY = currY;
         currX = e.clientX - canvas.position().left;
