@@ -12,11 +12,20 @@
     let isAnnotating = false;
 
     const handleMouseDown = (event) => {
+        if(mode !== 'annotating')
+            return;
+
+        isAnnotating = true;
+
         // update start position
         startPos.x = event.offsetX;
         startPos.y = event.offsetY;
 
-        isAnnotating = true;
+        // create new annotation rectangle
+        const newRect = document.createElement('div');
+        newRect.classList.add('rect', 'rect-active');
+        canvas.insertAdjacentElement('afterend', newRect);
+        rectangles.push(newRect);
 
         // register rectangle resize event
         window.addEventListener('mousemove', handleRectangleResize);
@@ -74,6 +83,8 @@
            window.mode = 'drawing';
            event.target.innerHTML = 'Switch to annotating';
        }
+
+       isAnnotating = false;
     });
 
 })();
