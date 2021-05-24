@@ -166,6 +166,7 @@ function drawOnCanvas(ctx, canvasWidth, canvasHeight, prevX, prevY, currX, currY
     ctx.lineTo(currX, currY);
     ctx.strokeStyle = color;
     ctx.lineWidth = thickness;
+    ctx.lineJoin = 'round';
     ctx.stroke();
     ctx.closePath();
 }
