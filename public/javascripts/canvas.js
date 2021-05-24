@@ -5,7 +5,7 @@ let color = 'red', thickness = 4;
 
 // variable indicating whether the user is drawing or annotating
 // possible values: 'drawing' | 'annotating'
-let mode = 'annotating';
+window.mode = 'annotating';
 
 /**
  * it inits the image canvas to draw on. It sets up the events to respond to (click, mouse on, etc.)

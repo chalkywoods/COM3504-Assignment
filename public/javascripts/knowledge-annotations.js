@@ -9,21 +9,21 @@
 
     let startPos = { x: 0, y: 0 };
 
-    let isDrawing = false;
+    let isAnnotating = false;
 
     const handleMouseDown = (event) => {
         // update start position
         startPos.x = event.offsetX;
         startPos.y = event.offsetY;
 
-        isDrawing = true;
+        isAnnotating = true;
 
         // register rectangle resize event
         window.addEventListener('mousemove', handleRectangleResize);
     };
 
     const handleRectangleResize = (event) => {
-        if(!isDrawing)
+        if(!isAnnotating)
             return;
 
         const canvasWidth = canvas.width;
@@ -55,7 +55,7 @@
     };
 
     const handleMouseUp = () => {
-        isDrawing = false;
+        isAnnotating = false;
 
         // remove resize listener
         window.removeEventListener('mousemove', handleRectangleResize);
@@ -64,5 +64,16 @@
     // add listeners to canvas
     canvas.addEventListener('mousedown', handleMouseDown);
     canvas.addEventListener('mouseup', handleMouseUp);
+
+    // handle mode switching (between drawing and annotating)
+    document.getElementById('switch_mode').addEventListener('click', (event) => {
+       if(window.mode === 'drawing') {
+           window.mode = 'annotating';
+           event.target.innerHTML = 'Switch to drawing';
+       } else {
+           window.mode = 'drawing';
+           event.target.innerHTML = 'Switch to annotating';
+       }
+    });
 
 })();
