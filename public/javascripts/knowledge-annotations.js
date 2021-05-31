@@ -86,7 +86,19 @@
     const handleAnnotationSelection = (event) => {
         console.log(event);
 
-        rectangles[rectangles.length - 1].dataset.annotation = event.row.name;
+        const { name, id, rc: description, qc: url } = event.row;
+
+        // append tooltip with fetched information to the annotation rectangle
+        const rectElement = rectangles[rectangles.length - 1];
+        rectElement.innerHTML = `
+            <div class="tooltip">
+                <h4>${name}</h4>
+                <p>ID: ${id}</p>
+                <p>Description: ${description}</p>
+                <a href="${url}" target="_blank">Link</a>
+            </div>
+        `;
+
         modal.classList.add('hidden');
     }
 
