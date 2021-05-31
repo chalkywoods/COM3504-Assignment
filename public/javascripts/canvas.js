@@ -5,7 +5,7 @@ let color = 'red', thickness = 4;
 
 // variable indicating whether the user is drawing or annotating
 // possible values: 'drawing' | 'annotating'
-window.mode = 'annotating';
+window.mode = 'drawing';
 
 /**
  * it inits the image canvas to draw on. It sets up the events to respond to (click, mouse on, etc.)
@@ -52,7 +52,7 @@ function initCanvas(socket, imageUrl) {
                     currY: currY,
                 }
                 let timestamp = Date.now()
-                storeStroke(room, timestamp, stroke_obj);;
+                storeStroke(room, timestamp, stroke_obj);
 
                 let stroke = JSON.stringify(stroke_obj);
                 socket.emit('stroke', room, username, stroke, timestamp);

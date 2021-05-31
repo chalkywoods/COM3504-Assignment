@@ -3,18 +3,20 @@
 
     const API_KEY = 'AIzaSyAG7w627q-djB4gTTahssufwNOImRqdYKM';
 
-    // array keeping the annotation rectangle elements
-    const rectangles = [];
+    // variable keeping a reference to the most current rectangle
+    let currentRect = null;
 
     const canvas = document.getElementById('canvas');
     const modal = document.getElementById('knowledge-modal');
+    const knowledgeSearchInput = document.getElementById('knowledge-search');
 
-    let startPos = { x: 0, y: 0 };
+    // storing the mouse starting position
+    let startPos = {x: 0, y: 0};
 
     let isAnnotating = false;
 
     const handleMouseDown = (event) => {
-        if(mode !== 'annotating')
+        if (mode !== 'annotating')
             return;
 
         isAnnotating = true;
@@ -24,21 +26,20 @@
         startPos.y = event.offsetY;
 
         // create new annotation rectangle
-        const newRect = document.createElement('div');
-        newRect.classList.add('rect');
-        canvas.insertAdjacentElement('afterend', newRect);
-        rectangles.push(newRect);
+        currentRect = document.createElement('div');
+        currentRect.classList.add('rect');
+        canvas.insertAdjacentElement('afterend', currentRect);
 
         // register rectangle resize event
         window.addEventListener('mousemove', handleRectangleResize);
     };
 
     const handleRectangleResize = (event) => {
-        if(!isAnnotating)
+        if (!isAnnotating)
             return;
 
-        const canvasWidth = canvas.width;
-        const canvasHeight = canvas.height;
+        const canvasWidth = canvas.offsetWidth;
+        const canvasHeight = canvas.offsetHeight;
         const canvasLeft = canvas.offsetLeft;
         const canvasTop = canvas.offsetTop;
 
@@ -56,17 +57,15 @@
         const width = Math.abs(mousePos.x - startPos.x);
         const height = Math.abs(mousePos.y - startPos.y);
 
-        const rectElement = rectangles[rectangles.length - 1];
+        currentRect.style.left = canvasLeft + x + 'px';
+        currentRect.style.top = canvasTop + y + 'px';
 
-        rectElement.style.left = canvasLeft + x + 'px';
-        rectElement.style.top = canvasTop + y + 'px';
-
-        rectElement.style.width = width + 'px';
-        rectElement.style.height = height + 'px';
+        currentRect.style.width = width + 'px';
+        currentRect.style.height = height + 'px';
     };
 
     const handleMouseUp = () => {
-        if(!isAnnotating)
+        if (!isAnnotating)
             return;
 
         isAnnotating = false;
@@ -74,23 +73,64 @@
         // remove resize listener
         window.removeEventListener('mousemove', handleRectangleResize);
 
-        // change class of the newly drawn rectangle
-        const rectElement = rectangles[rectangles.length - 1];
-        rectElement.classList.add('rect-finished');
+        currentRect.classList.add('rect-finished');
 
         // show annotation modal
         modal.classList.remove('hidden');
+        knowledgeSearchInput.value = '';
+        knowledgeSearchInput.focus();
     };
 
     // event firing after selecting an element in the KG widget
     const handleAnnotationSelection = (event) => {
-        console.log(event);
-
-        const { name, id, rc: description, qc: url } = event.row;
+        // hide the modal
+        modal.classList.add('hidden');
 
         // append tooltip with fetched information to the annotation rectangle
-        const rectElement = rectangles[rectangles.length - 1];
-        rectElement.innerHTML = `
+        currentRect.innerHTML = getTooltipHTML(event.row);
+
+        // creating annotation object that'll be emitted and stored
+        const annotation = {
+            x: currentRect.offsetLeft - canvas.offsetLeft,
+            y: currentRect.offsetTop - canvas.offsetTop,
+            width: currentRect.offsetWidth,
+            height: currentRect.offsetHeight,
+            data: event.row
+        };
+
+        socket.emit('annotation', room, username, annotation);
+
+        // TODO: Store in cache
+    }
+
+    // socket.io handler
+    socket.on('annotation', (room, senderUsername, annotation) => {
+        // ignore if originated from the current user
+        if (username === senderUsername)
+            return;
+
+        createAnnotation(annotation);
+    });
+
+    // function creating a rectangle with a specified annotation
+    const createAnnotation = (annotation) => {
+        const rectElement = document.createElement('div');
+        rectElement.classList.add('rect', 'rect-finished');
+
+        rectElement.style.left = annotation.x + canvas.offsetLeft + 'px';
+        rectElement.style.top = annotation.y + canvas.offsetTop + 'px';
+        rectElement.style.width = annotation.width + 'px';
+        rectElement.style.height = annotation.height + 'px';
+
+        rectElement.innerHTML = getTooltipHTML(annotation.data);
+
+        canvas.insertAdjacentElement('afterend', rectElement);
+    };
+
+    const getTooltipHTML = (data) => {
+        const {name, id, rc: description, qc: url} = data;
+
+        return `
             <div class="tooltip">
                 <h4>${name}</h4>
                 <p>ID: ${id}</p>
@@ -98,33 +138,31 @@
                 <a href="${url}" target="_blank">Link</a>
             </div>
         `;
-
-        modal.classList.add('hidden');
-    }
+    };
 
     const initKGWidget = () => {
         const config = {
             selectHandler: handleAnnotationSelection
         };
 
-        KGSearchWidget(API_KEY, document.getElementById('knowledge-search'), config);
+        KGSearchWidget(API_KEY, knowledgeSearchInput, config);
     };
 
-    // add listeners to canvas
+    // add listeners to canvas and window
     canvas.addEventListener('mousedown', handleMouseDown);
-    canvas.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener('mouseup', handleMouseUp);
 
     // handle mode switching (between drawing and annotating)
     document.getElementById('switch_mode').addEventListener('click', (event) => {
-       if(window.mode === 'drawing') {
-           window.mode = 'annotating';
-           event.target.innerHTML = 'Switch to drawing';
-       } else {
-           window.mode = 'drawing';
-           event.target.innerHTML = 'Switch to annotating';
-       }
+        if (window.mode === 'drawing') {
+            window.mode = 'annotating';
+            event.target.innerHTML = 'Switch to drawing';
+        } else {
+            window.mode = 'drawing';
+            event.target.innerHTML = 'Switch to annotating';
+        }
 
-       isAnnotating = false;
+        isAnnotating = false;
     });
 
     initKGWidget();

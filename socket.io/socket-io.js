@@ -27,6 +27,13 @@ exports.init = function (io) {
         console.log(`[SOCKET.IO] ${username} is drawing in room ${room}`);
       });
 
+      // handling knowledge graph annotation
+      socket.on('annotation', (room, username, annotation) => {
+        socket.to(room).emit('annotation', room, username, annotation);
+
+        console.log(`[SOCKET.IO] ${username} has created an annotation in room ${room}`);
+      });
+
       socket.on('disconnect', () => {
         console.log('someone disconnected');
       });
