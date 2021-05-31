@@ -1,11 +1,13 @@
 // using the module pattern not to pollute namespace with global variables
 (() => {
+
     const API_KEY = 'AIzaSyAG7w627q-djB4gTTahssufwNOImRqdYKM';
 
     // array keeping the annotation rectangle elements
     const rectangles = [];
 
     const canvas = document.getElementById('canvas');
+    const modal = document.getElementById('knowledge-modal');
 
     let startPos = { x: 0, y: 0 };
 
@@ -23,7 +25,7 @@
 
         // create new annotation rectangle
         const newRect = document.createElement('div');
-        newRect.classList.add('rect', 'rect-active');
+        newRect.classList.add('rect');
         canvas.insertAdjacentElement('afterend', newRect);
         rectangles.push(newRect);
 
@@ -64,10 +66,36 @@
     };
 
     const handleMouseUp = () => {
+        if(!isAnnotating)
+            return;
+
         isAnnotating = false;
 
         // remove resize listener
         window.removeEventListener('mousemove', handleRectangleResize);
+
+        // change class of the newly drawn rectangle
+        const rectElement = rectangles[rectangles.length - 1];
+        rectElement.classList.add('rect-finished');
+
+        // show annotation modal
+        modal.classList.remove('hidden');
+    };
+
+    // event firing after selecting an element in the KG widget
+    const handleAnnotationSelection = (event) => {
+        console.log(event);
+
+        rectangles[rectangles.length - 1].dataset.annotation = event.row.name;
+        modal.classList.add('hidden');
+    }
+
+    const initKGWidget = () => {
+        const config = {
+            selectHandler: handleAnnotationSelection
+        };
+
+        KGSearchWidget(API_KEY, document.getElementById('knowledge-search'), config);
     };
 
     // add listeners to canvas
@@ -87,4 +115,5 @@
        isAnnotating = false;
     });
 
+    initKGWidget();
 })();

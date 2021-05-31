@@ -5,12 +5,14 @@
     <title>
         <%= title %>
     </title>
+    <link type="text/css" rel="stylesheet" href="https://www.gstatic.com/knowledge/kgsearch/widget/1.0/widget.min.css">
     <link rel='stylesheet' href='/stylesheets/style.css' />
 
     <script src="/socket.io/socket.io.js" defer></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js" defer></script>
     <script src="/javascripts/index.js" defer></script>
     <script src="/javascripts/canvas.js" defer></script>
+    <script type="text/javascript" src="https://www.gstatic.com/knowledge/kgsearch/widget/1.0/widget.min.js" defer></script>
     <script src="/javascripts/knowledge-annotations.js" defer></script>
     <script src="https://unpkg.com/idb/build/iife/index-min.js" defer></script>
 </head>
@@ -79,6 +81,13 @@
         </div>
     </div>
     <div id="chat_interface" class="hidden">
+        <div class="modal-wrapper hidden" id="knowledge-modal">
+            <div class="modal">
+                <h3>Search for anything to annotate</h3>
+                <input type="text" id="knowledge-search">
+            </div>
+        </div>
+
         <p>
             <span id="who_you_are"></span>, you are in room: <span id="in_room"></span>
         </p>

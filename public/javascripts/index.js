@@ -1,6 +1,6 @@
 let username = null;
 let room = null;
-let db = null;
+let dbInstance = null;
 const socket = io();
 /**
  * called by <body onload>
@@ -9,15 +9,16 @@ const socket = io();
  */
 function init() {
     // register a service worker
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js').then(function (registration) {
-            // registration successful
-            console.log('ServiceWorker registration successful with scope: ', registration.scope);
-        }, function (err) {
-            // registration failed
-            console.log('ServiceWorker registration failed: ', err);
-        });
-    }
+    // TODO: Untick later
+    // if ('serviceWorker' in navigator) {
+    //     navigator.serviceWorker.register('./sw.js').then(function (registration) {
+    //         // registration successful
+    //         console.log('ServiceWorker registration successful with scope: ', registration.scope);
+    //     }, function (err) {
+    //         // registration failed
+    //         console.log('ServiceWorker registration failed: ', err);
+    //     });
+    // }
 
     // it sets up the interface so that userId and room are selected
     document.getElementById('initial_form').classList.remove('hidden');
@@ -343,23 +344,23 @@ function displayImages(images) {
 }
 
 async function initDatabase() {
-    db = await idb.openDB('appdb', 1, {
-        upgrade(db) {
-            let imageStore = db.createObjectStore('images', {
+    dbInstance = await idb.openDB('appdb', 1, {
+        upgrade(dbInstance) {
+            let imageStore = dbInstance.createObjectStore('images', {
                 keyPath: 'id',
                 autoIncrement: true
             });
             imageStore.createIndex('room', 'room')
             imageStore.createIndex('uniqueImage', ['room', 'title', 'description', 'author', 'url'], { unique: true })
 
-            let chatStore = db.createObjectStore('chats', {
+            let chatStore = dbInstance.createObjectStore('chats', {
                 keyPath: 'id',
                 autoIncrement: true
             });
             chatStore.createIndex('room', 'room')
             chatStore.createIndex('roomTime', ['room', 'timestamp'], { unique: true })
 
-            let strokeStore = db.createObjectStore('strokes', {
+            let strokeStore = dbInstance.createObjectStore('strokes', {
                 keyPath: 'id',
                 autoIncrement: true
             });
@@ -371,21 +372,21 @@ async function initDatabase() {
 }
 
 async function storeImage(room, imageObject) {
-    if (!db)
+    if (!dbInstance)
         await initDatabase();
-    if (db) {
+    if (dbInstance) {
         imageObject['room'] = room;
-        db.put('images', imageObject)
+        dbInstance.put('images', imageObject)
     }
 }
 
 async function storeStroke(room, timestamp, strokeObject) {
-    if (!db)
+    if (!dbInstance)
         await initDatabase();
-    if (db) {
+    if (dbInstance) {
         strokeObject['room'] = room;
         strokeObject['timestamp'] = timestamp;
-        db.put('strokes', strokeObject)
+        dbInstance.put('strokes', strokeObject)
     }
 }
 
@@ -396,23 +397,23 @@ async function storeChat(room, username, text, timestamp) {
         text: text,
         timestamp: timestamp
     }
-    if (!db)
+    if (!dbInstance)
         await initDatabase();
-    if (db) {
-        db.put('chats', chatObject)
+    if (dbInstance) {
+        dbInstance.put('chats', chatObject)
     }
 }
 
 async function getImage(room) {
-    return db.getFromIndex('images', 'room', room);
+    return ddbInstanceb.getFromIndex('images', 'room', room);
 }
 
 async function getChats(room) {
-    return db.getAllFromIndex('chats', 'room', room);
+    return dbInstance.getAllFromIndex('chats', 'room', room);
 }
 
 async function getStrokes(room) {
-    return db.getAllFromIndex('strokes', 'room', room);
+    return dbInstance.getAllFromIndex('strokes', 'room', room);
 }
 
 async function loadCachedChats(room) {
