@@ -1,6 +1,5 @@
-// using the module pattern not to pollute namespace with global variables
+// using the module IFEE pattern not to pollute namespace with global variables
 (() => {
-
     const API_KEY = 'AIzaSyAG7w627q-djB4gTTahssufwNOImRqdYKM';
 
     // variable keeping a reference to the most current rectangle
@@ -100,7 +99,7 @@
 
         socket.emit('annotation', room, username, annotation);
 
-        // TODO: Store in cache
+        storeAnnotation(annotation);
     }
 
     // socket.io handler
@@ -127,6 +126,7 @@
         canvas.insertAdjacentElement('afterend', rectElement);
     };
 
+    // function generating HTML representing a tooltip displaying KG information
     const getTooltipHTML = (data) => {
         const {name, id, rc: description, qc: url} = data;
 
@@ -139,6 +139,16 @@
             </div>
         `;
     };
+
+    // function storing annotation in the indexedDB
+    const storeAnnotation = async (annotation) => {
+        if(!dbInstance) {
+            console.error('Failed to store annotation!');
+            return;
+        }
+
+
+    }
 
     const initKGWidget = () => {
         const config = {

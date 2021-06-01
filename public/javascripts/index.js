@@ -20,7 +20,7 @@ function init() {
     //     });
     // }
 
-    // it sets up the interface so that userId and room are selected
+    // it sets up the interface so that userId and room  are selected
     document.getElementById('initial_form').classList.remove('hidden');
     document.getElementById('chat_interface').classList.add('hidden');
 
