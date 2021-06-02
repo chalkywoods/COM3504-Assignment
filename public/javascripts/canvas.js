@@ -11,15 +11,19 @@ window.mode = 'drawing';
  * it inits the image canvas to draw on. It sets up the events to respond to (click, mouse on, etc.)
  * it is also the place where the data should be sent  via socket.io
  * @param socket the open socket to register events on
- * @param imageUrl teh image url to download
+ * @param imageUrl the image url to download
  */
 function initCanvas(socket, imageUrl) {
     let flag = false,
         prevX, prevY, currX, currY = 0;
     let canvas = $('#canvas');
     let cvx = document.getElementById('canvas');
-    let img = document.getElementById('image');
     let ctx = cvx.getContext('2d');
+    let c_width = canvas.width();
+    let c_height = canvas.height();
+    ctx.clearRect(0, 0, c_width, c_height);
+    let img = document.getElementById('image');
+    img.style.display = "block";
     img.src = imageUrl;
 
     // event on the canvas when the mouse is on it

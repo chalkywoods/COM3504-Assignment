@@ -89,6 +89,52 @@
 
         <p>
             <span id="who_you_are"></span>, you are in room: <span id="in_room"></span>
+    <div id="image_form" class="modal-wrapper hidden">
+        <div class="modal">
+            <h2>Select image</h2>
+            <form onsubmit="return false;">
+                <div class="options-wrapper">
+                    <button id="show_url" onclick='imageSelector("url")'>URL</button>
+                    <button id="show_upload" onclick='imageSelector("upload")'>Upload</button>
+                    <button id="show_select" onclick='imageSelector("select")'>Search by Author</button>
+                </div>
+                <div id="imageAttributes" style="display: block">
+                    <p><label for="title"> Title </label>
+                        <input type="text" id="title" name="title">
+                    </p>
+                    <p><label for="desc"> Description </label>
+                        <input type="text" id="desc" name="desc">
+                    </p>
+                    <p><label for="author"> Author </label>
+                        <input type="text" id="author" name="author">
+                    </p>
+                </div>
+                <div id="imageURL" style="display: block">
+                    <p style=" width: 100%"><label for="image_url"> Image (URL) </label><input type="text" id="image_url"
+                            name="image_url">
+                    </p>
+                </div>
+                <div id="imageUpload" style="display: none">
+                    <p><label for="image_upload"> Image </label>
+                        <input type="file" name="image_upload" id="image_upload" "image/*">
+                    </p>
+                </div>
+                <div id="imageSelect" style="display: none">
+                    <p style=" width: 100%"><label for="author_search"> Author name </label>
+                        <input type="text" id="author_search" name="author_search">
+                        <button id="search" onclick="getImageByAuthor()">Search</button>
+                    </p>
+                    <div id="show_images">
+                    </div>
+                </div>
+                <input type="hidden" id="imageType" name="imageType" value="imageUrl">
+                <button id="upload">Upload</button>
+            </form>
+        </div>
+    </div>
+    <div id="chat_interface" class="hidden">
+        <p>
+            <span id="who_you_are"></span>, you are in room: <span id="in_room"></span>
         </p>
         <div class="image-wrapper">
             <img id="image" height="100%">
@@ -101,6 +147,7 @@
                 <div class="chat-wrapper">
                     <input type="text" id="chat_input" name="chat_input">
                     <button id="switch_mode">Switch to annotating</button>
+                    <button id="change_image" onclick="showImageChoice(true)">Change Image</button>
                     <button id="chat_send" onclick="sendChatText()">Send</button>
                 </div>
             </form>
