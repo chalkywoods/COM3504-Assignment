@@ -83,6 +83,8 @@ function connectToRoom(username, room, image) {
     initCanvas(socket, image, room, username);
     hideLoginInterface(room, username);
     loadCachedChats(room);
+
+    KnowledgeAnnotations.loadCachedAnnotations();
 }
 
 /**
@@ -366,6 +368,12 @@ async function initDatabase() {
             });
             strokeStore.createIndex('room', 'room')
             strokeStore.createIndex('roomTime', ['room', 'timestamp'], { unique: true })
+
+            const annotationStore = dbInstance.createObjectStore('annotations', {
+                keyPath: 'id',
+                autoIncrement: true
+            });
+            annotationStore.createIndex('room', 'room');
         }
     });
     console.log('DB created');
@@ -405,7 +413,7 @@ async function storeChat(room, username, text, timestamp) {
 }
 
 async function getImage(room) {
-    return ddbInstanceb.getFromIndex('images', 'room', room);
+    return dbInstance.getFromIndex('images', 'room', room);
 }
 
 async function getChats(room) {
