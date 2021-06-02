@@ -95,7 +95,8 @@ const KnowledgeAnnotations = (function () {
             y: currentRect.offsetTop - canvas.offsetTop,
             width: currentRect.offsetWidth,
             height: currentRect.offsetHeight,
-            data: event.row
+            data: event.row,
+            canvasWidth: canvas.offsetWidth
         };
 
         socket.emit('annotation', room, username, annotation);
@@ -108,13 +109,13 @@ const KnowledgeAnnotations = (function () {
         const rectElement = document.createElement('div');
         rectElement.classList.add('rect', 'rect-finished');
 
-        console.log('cL:', canvas.offsetLeft);
-        console.log('cT:', canvas.offsetTop);
+        // scaling the annotation rectangle
+        const scaleFactor = canvas.offsetWidth / annotation.canvasWidth;
 
-        rectElement.style.left = annotation.x + canvas.offsetLeft + 'px';
-        rectElement.style.top = annotation.y + canvas.offsetTop + 'px';
-        rectElement.style.width = annotation.width + 'px';
-        rectElement.style.height = annotation.height + 'px';
+        rectElement.style.left = scaleFactor * annotation.x + canvas.offsetLeft + 'px';
+        rectElement.style.top = scaleFactor * annotation.y + canvas.offsetTop + 'px';
+        rectElement.style.width = scaleFactor * annotation.width + 'px';
+        rectElement.style.height = scaleFactor * annotation.height + 'px';
 
         rectElement.innerHTML = getTooltipHTML(annotation.data);
 
@@ -137,9 +138,9 @@ const KnowledgeAnnotations = (function () {
 
     // function storing annotation in the indexedDB
     const storeAnnotation = async (annotation) => {
-        // if(!dbInstance) {
-        //     await initDatabase();
-        // }
+        if(!dbInstance) {
+            await initDatabase();
+        }
 
         annotation.room = room;
         dbInstance.put('annotations', annotation);
@@ -191,7 +192,8 @@ const KnowledgeAnnotations = (function () {
     // expose functions for use by other files
     return {
         loadCachedAnnotations,
-        createAnnotation
+        createAnnotation,
+        storeAnnotation
     };
 })();
 
@@ -202,4 +204,5 @@ socket.on('annotation', (room, senderUsername, annotation) => {
         return;
 
     KnowledgeAnnotations.createAnnotation(annotation);
+    KnowledgeAnnotations.storeAnnotation(annotation);
 });
