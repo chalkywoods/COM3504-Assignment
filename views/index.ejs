@@ -5,12 +5,15 @@
     <title>
         <%= title %>
     </title>
+    <link type="text/css" rel="stylesheet" href="https://www.gstatic.com/knowledge/kgsearch/widget/1.0/widget.min.css">
     <link rel='stylesheet' href='/stylesheets/style.css' />
 
     <script src="/socket.io/socket.io.js" defer></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js" defer></script>
     <script src="/javascripts/index.js" defer></script>
     <script src="/javascripts/canvas.js" defer></script>
+    <script type="text/javascript" src="https://www.gstatic.com/knowledge/kgsearch/widget/1.0/widget.min.js" defer></script>
+    <script src="/javascripts/knowledge-annotations.js" defer></script>
     <script src="https://unpkg.com/idb/build/iife/index-min.js" defer></script>
 </head>
 
@@ -24,7 +27,6 @@
 
             <label for="name"> Your name </label>
             <input type="text" id="name" name="name">
-
 
             <label for="roomNo"> Your room </label>
             <div class="input-wrapper">
@@ -73,24 +75,32 @@
                     </div>
                 </div>
                 <input type="hidden" id="imageType" name="imageType" value="imageUrl">
-                <button id="upload">Upload</button>
+                <button id="upload" onclick="submitImage()">Upload</button>
             </form>
         </div>
     </div>
     <div id="chat_interface" class="hidden">
+        <div class="modal-wrapper hidden" id="knowledge-modal">
+            <div class="modal">
+                <h3>Search for anything to annotate</h3>
+                <input type="text" id="knowledge-search">
+            </div>
+        </div>
+
         <p>
             <span id="who_you_are"></span>, you are in room: <span id="in_room"></span>
         </p>
-        <div style="width: 100%; height: 55%">
+        <div class="image-wrapper">
             <img id="image" height="100%">
             <canvas id="canvas"></canvas>
         </div>
         <div id="history" class="boxed scrolling"></div>
-        <div id="input" class=" boxed">
+        <div id="input" class="boxed">
             <form onsubmit="return false;" style="width: 100%">
                 <label for="name">Write a message: </label>
                 <div class="chat-wrapper">
                     <input type="text" id="chat_input" name="chat_input">
+                    <button id="switch_mode">Switch to annotating</button>
                     <button id="chat_send" onclick="sendChatText()">Send</button>
                     <button id="change_image" onclick="showImageChoice(true)">Change Image</button>
                 </div>

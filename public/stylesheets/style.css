@@ -95,7 +95,6 @@ button:hover {
 .scrolling {
     background-color: var(--main-color);
     overflow-y: scroll;
-    height: 30%;
     margin-top: 1rem;
     margin-bottom: 1rem;
     padding: 1rem;
@@ -151,6 +150,8 @@ button:hover {
     height: 100%;
     background-color: #565563;
     padding: 2rem;
+    display: grid;
+    grid-template-rows: 7.5% 50% 30% 12.5%;
 }
 
 #chat_input {
@@ -205,7 +206,61 @@ button:hover {
     border: 1px solid grey;
 }
 
-/* helpers classes for controlling elements visibility */
+.image-wrapper {
+    width: 100%;
+    height: 100%;
+}
+
+/* helper class for controlling elements visibility */
 .hidden {
+    display: none !important;
+}
+
+/* knowledge annotations */
+.rect {
+    position: absolute;
+    border: 2px solid var(--main-color-darker);
+}
+
+.rect-finished:hover {
+    border: 4px solid var(--main-color-darker);
+}
+
+.tooltip {
+    position: absolute;
+    top: calc(100% - 20px);
+    left: calc(100% - 20px);
+    background-color: #fff;
+    color: #000;
+    padding: 1rem;
     display: none;
+    border-radius: 8px;
+    width: 400px;
+    box-shadow:  0px 0px 8px 3px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+}
+
+.rect-finished:hover .tooltip {
+    display: block;
+}
+
+.tooltip h4 {
+    margin-top: 0;
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+}
+
+#knowledge-search {
+    width: 400px;
+    display: block;
+}
+
+.kge-search-picker {
+    width: 400px;
+    z-index: 2;
+}
+
+#knowledge-modal h3 {
+    margin: 0;
+    margin-bottom: 1rem;
 }
