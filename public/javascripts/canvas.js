@@ -18,8 +18,8 @@ function initCanvas(socket, imageUrl) {
     let flag = false,
         prevX, prevY, currX, currY = 0;
     let canvas = $('#canvas');
-    let cvx = document.getElementById('canvas');
-    let ctx = cvx.getContext('2d');
+    let canvasElement = document.getElementById('canvas');
+    let ctx = canvasElement.getContext('2d');
     let c_width = canvas.width();
     let c_height = canvas.height();
     ctx.clearRect(0, 0, c_width, c_height);
@@ -100,7 +100,7 @@ function initCanvas(socket, imageUrl) {
             // it takes time before the image size is computed and made available
             // here we wait until the height is set, then we resize the canvas based on the size of the image
             let poll = setInterval(function () {
-                if (img.naturalHeight) {
+                if (img.clientWidth > 0) {
                     clearInterval(poll);
                     // resize the canvas
                     let ratioX = 1;
@@ -112,10 +112,10 @@ function initCanvas(socket, imageUrl) {
                         ratioY = img.clientHeight / window.innerHeight;
                     let ratio = Math.min(ratioX, ratioY);
                     // resize the canvas to fit the screen and the image
-                    cvx.width = canvas.width = img.clientWidth * ratio;
-                    cvx.height = canvas.height = img.clientHeight * ratio;
+                    canvasElement.width = canvas.width = img.clientWidth * ratio;
+                    canvasElement.height = canvas.height = img.clientHeight * ratio;
                     // draw the image onto the canvas
-                    drawImageScaled(img, cvx, ctx);
+                    drawImageScaled(img, canvasElement, ctx);
                     // hide the image element as it is not needed
                     img.style.display = 'none';
                 }
