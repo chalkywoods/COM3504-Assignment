@@ -471,8 +471,8 @@ async function initDatabase() {
             }
             if (oldVersion < 3) {
                 // Can't seem to retroactively add index in idb so delete and remake
-                db.deleteObjectStore('images')
-                let imageStore = db.createObjectStore('images', {
+                dbInstance.deleteObjectStore('images')
+                let imageStore = dbInstance.createObjectStore('images', {
                     keyPath: 'id',
                     autoIncrement: true
                 });
@@ -590,14 +590,13 @@ async function syncImages() {
                     delete image.id;
                     image.rooms = [image.room];
                     delete image.room;
-                    console.log(image);
                     $.ajax({
                         url: '/upload',
                         data: JSON.stringify(image),
                         contentType: 'application/json',
                         type: 'POST',
                         success: function (dataR) {
-                            markImageUploaded(image.room[0])
+                            markImageUploaded(image.rooms[0])
                         },
                         error: function (xhr, status, error) {
                             if (status === 422) {
