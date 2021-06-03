@@ -54,6 +54,8 @@ function init() {
     } else {
         console.log('This browser doesn\t support IndexedDB');
     }
+
+    window.addEventListener('online',  syncImages);
 }
 
 /**
@@ -102,23 +104,42 @@ function checkRoom(checking=null) {
     if (checking === null) {
         checking = document.getElementById("roomNo").value;
     }
-    $.ajax({
-        url: '/checkRoom',
-        data: JSON.stringify({room: checking}),
-        contentType: 'application/json',
-        type: 'POST',
-        success: function (dataR) {
-            console.log("Image found");
-            delete dataR['_id'];
-            room = checking;
-            storeImage(room, dataR);
-            connectToRoom(username, room, dataR.url);
-        },
-        error: function (xhr, status, error) {
-            console.log("no image found");
-            showImageChoice();
-        }
-    });
+    if (window.navigator.onLine) {
+        $.ajax({
+            url: '/checkRoom',
+            data: JSON.stringify({room: checking}),
+            contentType: 'application/json',
+            type: 'POST',
+            success: function (dataR) {
+                console.log("Image found");
+                delete dataR['_id'];
+                room = checking;
+                storeImage(room, dataR, 1);
+                connectToRoom(username, room, dataR.url);
+            },
+            error: function (xhr, status, error) {
+                console.log("no image found");
+                showImageChoice();
+            }
+        });
+    } else {
+        getImage(checking)
+            .then((image) => {
+                if (!image) {
+                    alert('Offline: Image will be uploaded when connection is back');
+                    showImageChoice();
+                } else {
+                    alert('Offline: Using local room');
+                    room = checking;
+                    connectToRoom(username, room, image.url);
+                }
+            })
+            .catch(function() {
+                alert('Offline: Image will be uploaded when connection is back');
+                showImageChoice();
+            })
+    }
+
 }
 
 /**
@@ -234,21 +255,28 @@ function newImage(url, title, desc, author, image, room) {
             author: author,
             url: image
         }
-        storeImage(room[0], data);
+        storeImage(room[0], data, 0);
         data['rooms'] = room;
-        $.ajax({
-            url: url,
-            data: JSON.stringify(data),
-            contentType: 'application/json',
-            type: 'POST',
-            success: function (dataR) {
-                resolve(room[0]);
-            },
-            error: function (xhr, status, error) {
-                alert('Error: ' + error.message);
-                reject(error);
-            }
-        });
+        if (window.navigator.onLine) {
+            $.ajax({
+                url: url,
+                data: JSON.stringify(data),
+                contentType: 'application/json',
+                type: 'POST',
+                success: function (dataR) {
+                    markImageUploaded(room[0])
+                        .then(function() {
+                            resolve(room[0]);
+                        })
+                },
+                error: function (xhr, status, error) {
+                    alert('Error: ' + error.message);
+                    reject(error);
+                }
+            });
+        } else {
+            resolve(room[0]);
+        }
     })
 }
 
@@ -396,7 +424,7 @@ function displayImages(images) {
 }
 
 async function initDatabase() {
-    dbInstance = await idb.openDB('appdb', 2, {
+    dbInstance = await idb.openDB('appdb', 3, {
         upgrade(db, oldVersion) {
             if (oldVersion < 1) {
                 let imageStore = db.createObjectStore('images', {
@@ -428,16 +456,28 @@ async function initDatabase() {
                 moveStore.createIndex('room', 'room')
                 moveStore.createIndex('roomTime', ['room', 'timestamp'], {unique: true})
             }
+            if (oldVersion < 3) {
+                // Can't seem to retroactively add index in idb so delete and remake
+                db.deleteObjectStore('images')
+                let imageStore = db.createObjectStore('images', {
+                    keyPath: 'id',
+                    autoIncrement: true
+                });
+                imageStore.createIndex('room', 'room')
+                imageStore.createIndex('uniqueImage', ['room', 'title', 'description', 'author', 'url'], {unique: true})
+                imageStore.createIndex('uploaded', 'uploaded')
+            }
         }
     });
     console.log('DB created');
 }
 
-async function storeImage(room, imageObject) {
+async function storeImage(room, imageObject, uploaded) {
     if (!dbInstance)
         await initDatabase();
     if (dbInstance) {
         imageObject['room'] = room;
+        imageObject['uploaded'] = uploaded;
         dbInstance.put('images', imageObject)
             .catch(err => console.log("Image already cached"))
     }
@@ -510,6 +550,51 @@ async function getStrokes(room) {
         await initDatabase();
     if (dbInstance) {
         return dbInstance.getAllFromIndex('strokes', 'room', room);
+    }
+}
+
+async function markImageUploaded(room) {
+    if (!dbInstance)
+        await initDatabase();
+    if (dbInstance) {
+        dbInstance.getFromIndex('images', 'room', room)
+            .then((image) => {
+                dbInstance.delete('images', 'room', room);
+                storeImage(room, image, 1)
+            })
+    }
+}
+
+async function syncImages() {
+    if (!dbInstance)
+        await initDatabase();
+    if (dbInstance) {
+        dbInstance.getAllFromIndex('images', 'uploaded', 0)
+            .then(function (images) {
+                images.forEach(image => {
+                    delete image.uploaded;
+                    delete image.id;
+                    image.rooms = [image.room];
+                    delete image.room;
+                    console.log(image);
+                    $.ajax({
+                        url: '/upload',
+                        data: JSON.stringify(image),
+                        contentType: 'application/json',
+                        type: 'POST',
+                        success: function (dataR) {
+                            markImageUploaded(image.room[0])
+                        },
+                        error: function (xhr, status, error) {
+                            if (status === 422) {
+                                alert('Error: Room ' + image.room + ' already exists in database, can\'t upload ' + image.title);
+                            } else {
+                                alert('Error: ' + error.message);
+                            }
+                        }
+                    })
+                })
+            })
     }
 }
 
