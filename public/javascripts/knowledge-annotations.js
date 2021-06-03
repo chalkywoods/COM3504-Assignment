@@ -148,6 +148,8 @@ x
 
     // function reading cached annotations and displaying them on the canvas
     const loadCachedAnnotations = async () => {
+        removeAnnotations();
+
         try {
             const annotations = await dbInstance.getAllFromIndex('annotations', 'room', room);
 
@@ -160,6 +162,11 @@ x
         } catch(err) {
             console.error('Failed to load cached annotations!');
         }
+    };
+
+    // function removing all annotations
+    const removeAnnotations = () => {
+        [...document.querySelectorAll('.rect')].forEach(annotation => annotation.parentElement.removeChild(annotation));
     };
 
     const initKGWidget = () => {
