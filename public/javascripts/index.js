@@ -249,6 +249,7 @@ function hideLoginInterface(room, username) {
     document.getElementById('chat_interface').classList.remove('hidden');
     document.getElementById('who_you_are').innerHTML = username;
     document.getElementById('in_room').innerHTML = ' ' + room;
+    document.getElementById('search').onclick = function() {getImageByAuthor(true)};
 }
 
 /**
@@ -372,7 +373,7 @@ async function base64FromFile() {
 /**
  * Get images by the given author
  */
-function getImageByAuthor() {
+function getImageByAuthor(moving) {
     const query = document.getElementById('author_search').value;
     $.ajax({
         url: "/search",
@@ -380,7 +381,7 @@ function getImageByAuthor() {
         contentType: 'application/json',
         type: 'POST',
         success: function (dataR) {
-            displayImages(dataR);
+            displayImages(dataR, moving);
         },
         error: function (xhr, status, error) {
             alert('Error: ' + error.message);
@@ -392,10 +393,14 @@ function getImageByAuthor() {
  * Use the selected existing image for a new room
  * @param image: The image to use
  */
-function useImage(image) {
+function useImage(image, moving=false) {
     const data = {
-        id: image._id,
-        room: document.getElementById('roomNo').value
+        id: image._id
+    }
+    if (moving) {
+        data['room'] = generateRoom();
+    } else {
+        data['room'] = document.getElementById('roomNo').value;
     }
     $.ajax({
         url: "/add",
@@ -403,7 +408,11 @@ function useImage(image) {
         contentType: 'application/json',
         type: 'POST',
         success: function (dataR) {
-            checkRoom();
+            if (moving) {
+                sendChangeRoom(data.room);
+            } else {
+                checkRoom();
+            }
         },
         error: function (xhr, status, error) {
             alert('Error: ' + error.message);
@@ -415,7 +424,7 @@ function useImage(image) {
  * Display images below the author search box
  * @param images
  */
-function displayImages(images) {
+function displayImages(images, moving) {
     let display_div = document.getElementById('show_images');
     display_div.innerHTML = '';
     images.forEach(function (image) {
@@ -434,7 +443,7 @@ function displayImages(images) {
         newDiv.appendChild(author);
         newDiv.appendChild(thumbnail);
         newDiv.id = "imageDiv";
-        newDiv.onclick = function () { useImage(image) };
+        newDiv.onclick = function () { useImage(image, moving) };
         display_div.appendChild(newDiv);
     })
 }
