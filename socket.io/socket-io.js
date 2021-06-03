@@ -21,6 +21,13 @@ exports.init = function (io) {
         console.log(`[SOCKET.IO] ${username} messaged room ${room}: ${msg}`);
       });
       
+      // listen for room change
+      socket.on('change_room', (room, toRoom, timestamp) => {
+        io.to(room).emit('change_room', room, toRoom, timestamp);
+
+        console.log(`[SOCKET.IO] Room ${room} changed to ${toRoom}`);
+      });
+
       // listen for drawing
       socket.on('stroke', (room, username, stroke, timestamp) => {
         socket.to(room).emit('stroke', room, username, stroke, timestamp);

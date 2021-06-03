@@ -202,6 +202,10 @@ button:hover {
     margin-top: 0.25rem;
 }
 
+.move_room_button {
+    border: 1px solid grey;
+}
+
 .image-wrapper {
     width: 100%;
     height: 100%;

@@ -1,5 +1,6 @@
 // using the module IFEE pattern not to pollute namespace with global variables
-(() => {
+
+const KnowledgeAnnotations = (function () {
     const API_KEY = 'AIzaSyAG7w627q-djB4gTTahssufwNOImRqdYKM';
 
     // variable keeping a reference to the most current rectangle
@@ -94,7 +95,8 @@
             y: currentRect.offsetTop - canvas.offsetTop,
             width: currentRect.offsetWidth,
             height: currentRect.offsetHeight,
-            data: event.row
+            data: event.row,
+            canvasWidth: canvas.offsetWidth
         };
 
         socket.emit('annotation', room, username, annotation);
@@ -102,24 +104,18 @@
         storeAnnotation(annotation);
     }
 
-    // socket.io handler
-    socket.on('annotation', (room, senderUsername, annotation) => {
-        // ignore if originated from the current user
-        if (username === senderUsername)
-            return;
-
-        createAnnotation(annotation);
-    });
-
     // function creating a rectangle with a specified annotation
     const createAnnotation = (annotation) => {
         const rectElement = document.createElement('div');
         rectElement.classList.add('rect', 'rect-finished');
 
-        rectElement.style.left = annotation.x + canvas.offsetLeft + 'px';
-        rectElement.style.top = annotation.y + canvas.offsetTop + 'px';
-        rectElement.style.width = annotation.width + 'px';
-        rectElement.style.height = annotation.height + 'px';
+        // scaling the annotation rectangle
+        const scaleFactor = canvas.offsetWidth / annotation.canvasWidth;
+x
+        rectElement.style.left = scaleFactor * annotation.x + canvas.offsetLeft + 'px';
+        rectElement.style.top = scaleFactor * annotation.y + canvas.offsetTop + 'px';
+        rectElement.style.width = scaleFactor * annotation.width + 'px';
+        rectElement.style.height = scaleFactor * annotation.height + 'px';
 
         rectElement.innerHTML = getTooltipHTML(annotation.data);
 
@@ -143,12 +139,35 @@
     // function storing annotation in the indexedDB
     const storeAnnotation = async (annotation) => {
         if(!dbInstance) {
-            console.error('Failed to store annotation!');
-            return;
+            await initDatabase();
         }
 
+        annotation.room = room;
+        dbInstance.put('annotations', annotation);
+    };
 
-    }
+    // function reading cached annotations and displaying them on the canvas
+    const loadCachedAnnotations = async () => {
+        removeAnnotations();
+
+        try {
+            const annotations = await dbInstance.getAllFromIndex('annotations', 'room', room);
+
+            // delaying annotations so canvas can position correctly
+            setTimeout(() => {
+                annotations.forEach(annotation => {
+                    createAnnotation(annotation);
+                });
+            }, 500);
+        } catch(err) {
+            console.error('Failed to load cached annotations!');
+        }
+    };
+
+    // function removing all annotations
+    const removeAnnotations = () => {
+        [...document.querySelectorAll('.rect')].forEach(annotation => annotation.parentElement.removeChild(annotation));
+    };
 
     const initKGWidget = () => {
         const config = {
@@ -176,4 +195,21 @@
     });
 
     initKGWidget();
+
+    // expose functions for use by other files
+    return {
+        loadCachedAnnotations,
+        createAnnotation,
+        storeAnnotation
+    };
 })();
+
+// socket.io handler
+socket.on('annotation', (room, senderUsername, annotation) => {
+    // ignore if originated from the current user
+    if (username === senderUsername)
+        return;
+
+    KnowledgeAnnotations.createAnnotation(annotation);
+    KnowledgeAnnotations.storeAnnotation(annotation);
+});

@@ -2,12 +2,14 @@ let username = null;
 let room = null;
 let dbInstance = null;
 const socket = io();
+
 /**
  * called by <body onload>
  * it initialises the interface and the expected socket messages
  * plus the associated actions
  */
 function init() {
+    // it sets up the interface so that userId and room are selected
     // register a service worker
     // TODO: Untick later
     // if ('serviceWorker' in navigator) {
@@ -54,12 +56,19 @@ function init() {
             })
     });
 
+    socket.on('change_room', (room, toRoom, timestamp) => {
+        storeMove(room, toRoom, timestamp);
+        changeRoom(toRoom);
+    });
+
     // check indexedDB support and initialise
     if ('indexedDB' in window) {
         initDatabase();
     } else {
         console.log('This browser doesn\t support IndexedDB');
     }
+
+    window.addEventListener('online',  syncImages);
 }
 
 /**
@@ -93,39 +102,69 @@ function connectToRoom(username, room, image) {
     console.log(username + " joined room " + room);
     initCanvas(socket, image, room, username);
     hideLoginInterface(room, username);
+    let history = document.getElementById('history');
+    history.innerHTML = "";
     loadCachedChats(room);
+
+    KnowledgeAnnotations.loadCachedAnnotations();
 }
 
 /**
  * Checks whether the given room has an image associated with it already, and connects if it has
  */
-function checkRoom() {
+function checkRoom(checking=null) {
     username = document.getElementById("name").value;
-    room = document.getElementById("roomNo").value;
-    $.ajax({
-        url: '/checkRoom',
-        data: JSON.stringify({ room: room }),
-        contentType: 'application/json',
-        type: 'POST',
-        success: function (dataR) {
-            console.log("Image found");
-            delete dataR['_id'];
-            storeImage(room, dataR);
-            connectToRoom(username, room, dataR.url);
-        },
-        error: function (xhr, status, error) {
-            console.log("no image found");
-            showImageChoice();
-        }
-    });
+
+    if (checking === null) {
+        checking = document.getElementById("roomNo").value;
+    }
+    if (window.navigator.onLine) {
+        $.ajax({
+            url: '/checkRoom',
+            data: JSON.stringify({room: checking}),
+            contentType: 'application/json',
+            type: 'POST',
+            success: function (dataR) {
+                console.log("Image found");
+                delete dataR['_id'];
+                room = checking;
+                storeImage(room, dataR, 1);
+                connectToRoom(username, room, dataR.url);
+            },
+            error: function (xhr, status, error) {
+                console.log("no image found");
+                showImageChoice();
+            }
+        });
+    } else {
+        getImage(checking)
+            .then((image) => {
+                if (!image) {
+                    alert('Offline: Image will be uploaded when connection is back');
+                    showImageChoice();
+                } else {
+                    alert('Offline: Using local room');
+                    room = checking;
+                    connectToRoom(username, room, image.url);
+                }
+            })
+            .catch(function() {
+                alert('Offline: Image will be uploaded when connection is back');
+                showImageChoice();
+            })
+    }
 }
 
 /**
  * shows the image selection form
  */
-function showImageChoice() {
+function showImageChoice(moving) {
     document.getElementById('connect').classList.add('hidden');
     document.getElementById('image_form').classList.remove('hidden');
+
+    const button = document.getElementById('upload');
+    button.onclick = function() { submitImage(moving); };
+    imageSelector('url');
 }
 
 /**
@@ -181,6 +220,24 @@ function writeOnHistory(text) {
     document.getElementById('chat_input').value = '';
 }
 
+function sendChangeRoom(toRoom) {
+    hideLoginInterface(room, username);
+    socket.emit("change_room", room, toRoom, Date.now())
+}
+
+function changeRoom(room) {
+    let history = document.getElementById('history');
+    let paragraph = document.createElement('p');
+    let button = document.createElement('button');
+    button.className = "move_room_button"
+    button.onclick = function() {checkRoom(room)};
+    button.innerHTML = `Move to room ${room}`;
+    paragraph.appendChild(button);
+    history.appendChild(paragraph);
+    // scroll to the last element
+    history.scrollTop = history.scrollHeight;
+}
+
 /**
  * it hides the initial form and shows the chat
  * @param room the selected room
@@ -204,51 +261,74 @@ function hideLoginInterface(room, username) {
  * @param room: Room to create with new image
  */
 function newImage(url, title, desc, author, image, room) {
-    const data = {
-        title: title,
-        description: desc,
-        author: author,
-        url: image
-    }
-    storeImage(room[0], data);
-    data['rooms'] = room;
-    $.ajax({
-        url: url,
-        data: JSON.stringify(data),
-        contentType: 'application/json',
-        type: 'POST',
-        success: function (dataR) {
-            checkRoom();
-        },
-        error: function (xhr, status, error) {
-            alert('Error: ' + error.message);
+    return new Promise((resolve, reject) => {
+        const data = {
+            title: title,
+            description: desc,
+            author: author,
+            url: image
         }
-    });
+        storeImage(room[0], data, 0);
+        data['rooms'] = room;
+        if (window.navigator.onLine) {
+            $.ajax({
+                url: url,
+                data: JSON.stringify(data),
+                contentType: 'application/json',
+                type: 'POST',
+                success: function (dataR) {
+                    markImageUploaded(room[0])
+                        .then(function() {
+                            resolve(room[0]);
+                        })
+                },
+                error: function (xhr, status, error) {
+                    alert('Error: ' + error.message);
+                    reject(error);
+                }
+            });
+        } else {
+            resolve(room[0]);
+        }
+    })
 }
 
 /**
  * Submit an image URL or file for creation
  */
-function submitImage() {
+function submitImage(moving) {
+    let newRoom;
+    if (moving) {
+        newRoom = generateRoom();
+    } else {
+        room = document.getElementById('roomNo').value;
+        newRoom = room;
+    }
+
     const type = document.getElementById('imageType').value;
-    const room = document.getElementById('roomNo').value;
     const title = document.getElementById('title').value;
     const description = document.getElementById('desc').value;
     const author = document.getElementById('author').value;
+
+    let image;
+
     if (type === "imageURL") {
         const imageURL = document.getElementById('image_url').value;
-        base64FromUrl(imageURL)
-            .then(function (imageData) {
-                newImage('/upload', title, description, author, imageData, [room]);
-            })
+        image = base64FromUrl(imageURL)
     } else if (type === "imageUpload") {
-        base64FromFile()
-            .then(function (imageData) {
-                newImage('/upload', title, description, author, imageData, [room]);
-            })
+        image = base64FromFile()
     } else {
         throw ReferenceError("image type not recognised");
     }
+    image.then(function(imageData) {
+        newImage('/upload', title, description, author, imageData, [newRoom]).then(newRoom => {
+            if (moving) {
+                sendChangeRoom(newRoom);
+            } else {
+                checkRoom(newRoom)
+            }
+        });
+    })
 }
 
 /**
@@ -258,8 +338,13 @@ function submitImage() {
  */
 
 async function base64FromUrl(url) {
-    const data = await fetch(url);
-    const blob = await data.blob();
+    const blob = await fetch(url, {mode: "cors"})
+        .then(data => data.blob())
+        .catch(e => {
+            if (e instanceof TypeError) {
+                alert("Invalid image URL");
+            }
+        })
     return new Promise((resolve) => {
         const reader = new FileReader();
         reader.readAsDataURL(blob);
@@ -355,39 +440,71 @@ function displayImages(images) {
 }
 
 async function initDatabase() {
-    dbInstance = await idb.openDB('appdb', 1, {
-        upgrade(dbInstance) {
-            let imageStore = dbInstance.createObjectStore('images', {
-                keyPath: 'id',
-                autoIncrement: true
-            });
-            imageStore.createIndex('room', 'room')
-            imageStore.createIndex('uniqueImage', ['room', 'title', 'description', 'author', 'url'], { unique: true })
+    dbInstance = await idb.openDB('appdb', 3, {
+        upgrade(dbInstance, oldVersion) {
+            // if database is created for the first time
+            if (oldVersion < 1) {
+                let imageStore = dbInstance.createObjectStore('images', {
+                    keyPath: 'id',
+                    autoIncrement: true
+                });
+                imageStore.createIndex('room', 'room')
+                imageStore.createIndex('uniqueImage', ['room', 'title', 'description', 'author', 'url'], {unique: true})
 
-            let chatStore = dbInstance.createObjectStore('chats', {
-                keyPath: 'id',
-                autoIncrement: true
-            });
-            chatStore.createIndex('room', 'room')
-            chatStore.createIndex('roomTime', ['room', 'timestamp'], { unique: true })
+                let chatStore = dbInstance.createObjectStore('chats', {
+                    keyPath: 'id',
+                    autoIncrement: true
+                });
+                chatStore.createIndex('room', 'room')
+                chatStore.createIndex('roomTime', ['room', 'timestamp'], {unique: true})
 
-            let strokeStore = dbInstance.createObjectStore('strokes', {
-                keyPath: 'id',
-                autoIncrement: true
-            });
-            strokeStore.createIndex('room', 'room')
-            strokeStore.createIndex('roomTime', ['room', 'timestamp'], { unique: true })
+                let strokeStore = dbInstance.createObjectStore('strokes', {
+                    keyPath: 'id',
+                    autoIncrement: true
+                });
+                strokeStore.createIndex('room', 'room')
+                strokeStore.createIndex('roomTime', ['room', 'timestamp'], {unique: true})
+
+                const annotationStore = dbInstance.createObjectStore('annotations', {
+                    keyPath: 'id',
+                    autoIncrement: true
+                });
+                annotationStore.createIndex('room', 'room');
+            }
+
+            if (oldVersion < 2) {
+                let moveStore = dbInstance.createObjectStore('moves', {
+                    keyPath: 'id',
+                    autoIncrement: true
+                });
+                moveStore.createIndex('room', 'room')
+                moveStore.createIndex('roomTime', ['room', 'timestamp'], {unique: true})
+            }
+            if (oldVersion < 3) {
+                // Can't seem to retroactively add index in idb so delete and remake
+                dbInstance.deleteObjectStore('images')
+                let imageStore = dbInstance.createObjectStore('images', {
+                    keyPath: 'id',
+                    autoIncrement: true
+                });
+                imageStore.createIndex('room', 'room')
+                imageStore.createIndex('uniqueImage', ['room', 'title', 'description', 'author', 'url'], {unique: true})
+                imageStore.createIndex('uploaded', 'uploaded')
+            }
         }
     });
+
     console.log('DB created');
 }
 
-async function storeImage(room, imageObject) {
+async function storeImage(room, imageObject, uploaded) {
     if (!dbInstance)
         await initDatabase();
     if (dbInstance) {
         imageObject['room'] = room;
+        imageObject['uploaded'] = uploaded;
         dbInstance.put('images', imageObject)
+            .catch(err => console.log("Image already cached"))
     }
 }
 
@@ -415,23 +532,108 @@ async function storeChat(room, username, text, timestamp) {
     }
 }
 
+async function storeMove(room, toRoom, timestamp) {
+    const moveObject = {
+        room: room,
+        toRoom: toRoom,
+        timestamp: timestamp
+    }
+    if (!dbInstance)
+        await initDatabase();
+    if (dbInstance) {
+        dbInstance.put('moves', moveObject)
+    }
+}
+
+
 async function getImage(room) {
-    return ddbInstanceb.getFromIndex('images', 'room', room);
+    if (!dbInstance)
+        await initDatabase();
+    if (dbInstance) {
+        return dbInstance.getFromIndex('images', 'room', room);
+    }
 }
 
 async function getChats(room) {
-    return dbInstance.getAllFromIndex('chats', 'room', room);
+    if (!dbInstance)
+        await initDatabase();
+    if (dbInstance) {
+        return dbInstance.getAllFromIndex('chats', 'room', room);
+    }
+}
+
+async function getMoves(room) {
+    if (!dbInstance)
+        await initDatabase();
+    if (dbInstance) {
+        return dbInstance.getAllFromIndex('moves', 'room', room);
+    }
 }
 
 async function getStrokes(room) {
-    return dbInstance.getAllFromIndex('strokes', 'room', room);
+    if (!dbInstance)
+        await initDatabase();
+    if (dbInstance) {
+        return dbInstance.getAllFromIndex('strokes', 'room', room);
+    }
+}
+
+async function markImageUploaded(room) {
+    if (!dbInstance)
+        await initDatabase();
+    if (dbInstance) {
+        dbInstance.getFromIndex('images', 'room', room)
+            .then((image) => {
+                dbInstance.delete('images', 'room', room);
+                storeImage(room, image, 1)
+            })
+    }
+}
+
+async function syncImages() {
+    if (!dbInstance)
+        await initDatabase();
+    if (dbInstance) {
+        dbInstance.getAllFromIndex('images', 'uploaded', 0)
+            .then(function (images) {
+                images.forEach(image => {
+                    delete image.uploaded;
+                    delete image.id;
+                    image.rooms = [image.room];
+                    delete image.room;
+                    $.ajax({
+                        url: '/upload',
+                        data: JSON.stringify(image),
+                        contentType: 'application/json',
+                        type: 'POST',
+                        success: function (dataR) {
+                            markImageUploaded(image.rooms[0])
+                        },
+                        error: function (xhr, status, error) {
+                            if (status === 422) {
+                                alert('Error: Room ' + image.room + ' already exists in database, can\'t upload ' + image.title);
+                            } else {
+                                alert('Error: ' + error.message);
+                            }
+                        }
+                    })
+                })
+            })
+    }
 }
 
 async function loadCachedChats(room) {
-    getChats(room)
-        .then(function (chats) {
-            chats.forEach(chat => writeOnHistory('<b>' + chat.username + ':</b> ' + chat.text));
-        })
+    const chats = await getChats(room);
+    const moves = await getMoves(room);
+    const messages = chats.concat(moves);
+    messages.sort(compareTimes);
+    messages.forEach(message =>  {
+        if (message.hasOwnProperty("toRoom")) {
+            changeRoom(message.toRoom);
+        } else {
+            writeOnHistory('<b>' + message.username + ':</b> ' + message.text);
+        }
+    })
 }
 
 async function loadCachedStrokes(room, context) {
@@ -456,12 +658,15 @@ async function deleteCachedStrokes(room) {
 }
 
 async function canvasClearing() {
-    // delete cached strokes
-    deleteCachedStrokes(room)
-        .then(() => {
-            // clear canvas for the user
-            clearCanvas();
-            // send clear event for other users
-            socket.emit('clear_canvas', room);
-        })
+// delete cached strokes
+deleteCachedStrokes(room)
+    .then(() => {
+        // clear canvas for the user
+        clearCanvas();
+        // send clear event for other users
+        socket.emit('clear_canvas', room);
+    })
+}
+function compareTimes(a, b) {
+    return a.timestamp - b.timestamp;
 }
