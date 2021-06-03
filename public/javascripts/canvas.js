@@ -127,13 +127,13 @@ function initCanvas(socket, imageUrl) {
 }
 
 // clear the canvas by re-drawing the current image on top
-function clearCanvas() {
+function clearCanvas(loadFromCache = true) {
     let cvx = document.getElementById('canvas');
     let ctx = cvx.getContext('2d');
     let img = document.getElementById('image');
 
     img.style.display = 'flex';
-    drawImageScaled(img, cvx, ctx);
+    drawImageScaled(img, cvx, ctx, loadFromCache);
     img.style.display = 'none';
 }
 
@@ -144,7 +144,7 @@ function clearCanvas() {
  * @param canvas
  * @param ctx
  */
-function drawImageScaled(img, canvas, ctx) {
+function drawImageScaled(img, canvas, ctx, loadFromCache = true) {
     // get the scale
     let scale = Math.min(canvas.width / img.width, canvas.height / img.height);
     // get the top left position of the image
@@ -152,7 +152,10 @@ function drawImageScaled(img, canvas, ctx) {
     let x = (canvas.width / 2) - (img.width / 2) * scale;
     let y = (canvas.height / 2) - (img.height / 2) * scale;
     ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
-    loadCachedStrokes(room, ctx);
+
+    if(loadFromCache) {
+        loadCachedStrokes(room, ctx);
+    }
 }
 
 

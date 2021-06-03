@@ -9,18 +9,16 @@ const socket = io();
  * plus the associated actions
  */
 function init() {
-    // it sets up the interface so that userId and room are selected
     // register a service worker
-    // TODO: Untick later
-    // if ('serviceWorker' in navigator) {
-    //     navigator.serviceWorker.register('./sw.js').then(function (registration) {
-    //         // registration successful
-    //         console.log('ServiceWorker registration successful with scope: ', registration.scope);
-    //     }, function (err) {
-    //         // registration failed
-    //         console.log('ServiceWorker registration failed: ', err);
-    //     });
-    // }
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js').then(function (registration) {
+            // registration successful
+            console.log('ServiceWorker registration successful with scope: ', registration.scope);
+        }, function (err) {
+            // registration failed
+            console.log('ServiceWorker registration failed: ', err);
+        });
+    }
 
     // it sets up the interface so that userId and room  are selected
     document.getElementById('initial_form').classList.remove('hidden');
@@ -46,14 +44,14 @@ function init() {
     });
     
     // receive clear canvas event
-    socket.on('clear_canvas', (room) => {
-        deleteCachedStrokes(room)
-            .then(() => {
-                // clear canvas for the user
-                clearCanvas();
-                // send clear event for other users
-                socket.emit('clear_canvas', room);
-            })
+    socket.on('clear_canvas', async (room) => {
+        try {
+            clearCanvas(false);
+            await deleteCachedStrokes(room);
+            await KnowledgeAnnotations.clearAnnotations();
+        } catch {
+            console.log('Failed to delete strokes from the IndexedDB');
+        }
     });
 
     socket.on('change_room', (room, toRoom, timestamp) => {
@@ -654,19 +652,32 @@ async function loadCachedStrokes(room, context) {
 }
 
 async function deleteCachedStrokes(room) {
-    return dbInstance.delete('strokes', 'room', room);
+    if (!dbInstance)
+        await initDatabase();
+
+    const strokes = await getStrokes(room);
+    strokes.forEach(stroke => dbInstance.delete('strokes', stroke.id));
+
+    console.log('Strokes deleted from the IndexedDB');
 }
 
+/*
+    Function used for canvas clearing
+    Removes strokes from the IndexedDB and emits a socket.io event for other users to do the same
+ */
 async function canvasClearing() {
-// delete cached strokes
-deleteCachedStrokes(room)
-    .then(() => {
-        // clear canvas for the user
-        clearCanvas();
-        // send clear event for other users
+    try {
+        clearCanvas(false);
         socket.emit('clear_canvas', room);
-    })
+
+        KnowledgeAnnotations.clearAnnotations();
+        deleteCachedStrokes(room);
+    } catch(err) {
+        console.error('Failed to clear canvas');
+        console.error(err);
+    }
 }
+
 function compareTimes(a, b) {
     return a.timestamp - b.timestamp;
 }

@@ -36,10 +36,10 @@ exports.init = function (io) {
       });
 
       // listen for cleared canvas
-      socket.on('clear_canvas', (room) => {
-        socket.to(room).emit('clear_canvas', room);
+      socket.on('clear_canvas', (room, username) => {
+        socket.to(room).emit('clear_canvas', room, username);
 
-        console.log(`[SOCKET.IO] Canvas cleared in room ${room}`);
+        console.log(`[SOCKET.IO] ${username} cleared canvas in room ${room}`);
       });
 
       // handling knowledge graph annotation

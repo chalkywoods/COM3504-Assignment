@@ -158,6 +158,11 @@ button:hover {
     margin: 0;
 }
 
+#chat_send {
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
 .modal-wrapper {
     position: absolute;
     top: 0;

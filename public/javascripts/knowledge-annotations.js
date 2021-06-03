@@ -75,10 +75,17 @@ const KnowledgeAnnotations = (function () {
 
         currentRect.classList.add('rect-finished');
 
-        // show annotation modal
-        modal.classList.remove('hidden');
-        knowledgeSearchInput.value = '';
-        knowledgeSearchInput.focus();
+        console.log(window.navigator.onLine);
+
+        if(!window.navigator.onLine) {
+            alert('Annotating is not possible while offline!');
+            currentRect.parentElement.removeChild(currentRect);
+        } else {
+            // show annotation modal
+            modal.classList.remove('hidden');
+            knowledgeSearchInput.value = '';
+            knowledgeSearchInput.focus();
+        }
     };
 
     // event firing after selecting an element in the KG widget
@@ -148,7 +155,7 @@ x
 
     // function reading cached annotations and displaying them on the canvas
     const loadCachedAnnotations = async () => {
-        removeAnnotations();
+        deleteAnnotations();
 
         try {
             const annotations = await dbInstance.getAllFromIndex('annotations', 'room', room);
@@ -158,16 +165,30 @@ x
                 annotations.forEach(annotation => {
                     createAnnotation(annotation);
                 });
-            }, 500);
+            }, 100);
         } catch(err) {
             console.error('Failed to load cached annotations!');
         }
     };
 
-    // function removing all annotations
-    const removeAnnotations = () => {
+    // function removing all annotations from canvas
+    const deleteAnnotations = () => {
         [...document.querySelectorAll('.rect')].forEach(annotation => annotation.parentElement.removeChild(annotation));
     };
+
+    // function clearing all cached annotations from canvas, indexedDB and emitting socket.io event
+    const clearAnnotations = async () => {
+        if (!dbInstance)
+            await initDatabase();
+
+        const annotations = await dbInstance.getAllFromIndex('annotations', 'room', room);
+        annotations.forEach(annotation => dbInstance.delete('annotations', annotation.id));
+
+        deleteAnnotations();
+
+        console.log('Annotations deleted from the IndexedDB');
+    };
+
 
     const initKGWidget = () => {
         const config = {
@@ -200,7 +221,8 @@ x
     return {
         loadCachedAnnotations,
         createAnnotation,
-        storeAnnotation
+        storeAnnotation,
+        clearAnnotations
     };
 })();
 
