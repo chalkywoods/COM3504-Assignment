@@ -44,7 +44,12 @@ function init() {
     });
     
     // receive clear canvas event
-    socket.on('clear_canvas', async (room) => {
+    socket.on('clear_canvas', async (room, sender_username) => {
+        if(username === sender_username)
+            return;
+
+        console.log('Clearing canvas...');
+
         try {
             clearCanvas(false);
             await deleteCachedStrokes(room);
@@ -232,6 +237,7 @@ function changeRoom(room) {
     button.innerHTML = `Move to room ${room}`;
     paragraph.appendChild(button);
     history.appendChild(paragraph);
+
     // scroll to the last element
     history.scrollTop = history.scrollHeight;
 }
@@ -330,12 +336,15 @@ function submitImage(moving) {
     })
 }
 
+async function promisifyUrl(url) {
+    return new Promise((resolve) => resolve(url));
+}
+
 /**
  * Load an image in base64 format from image url
  * @param url: url of image
  * @returns {Promise<unknown>}
  */
-
 async function base64FromUrl(url) {
     const blob = await fetch(url, {mode: "cors"})
         .then(data => data.blob())
@@ -675,9 +684,11 @@ async function deleteCachedStrokes(room) {
     Removes strokes from the IndexedDB and emits a socket.io event for other users to do the same
  */
 async function canvasClearing() {
+    console.log('Clearing canvas...');
+
     try {
         clearCanvas(false);
-        socket.emit('clear_canvas', room);
+        socket.emit('clear_canvas', room, username);
 
         KnowledgeAnnotations.clearAnnotations();
         deleteCachedStrokes(room);
