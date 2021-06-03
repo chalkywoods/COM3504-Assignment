@@ -2,12 +2,14 @@ let username = null;
 let room = null;
 let dbInstance = null;
 const socket = io();
+
 /**
  * called by <body onload>
  * it initialises the interface and the expected socket messages
  * plus the associated actions
  */
 function init() {
+    // it sets up the interface so that userId and room are selected
     // register a service worker
     // TODO: Untick later
     // if ('serviceWorker' in navigator) {
@@ -101,6 +103,7 @@ function connectToRoom(username, room, image) {
  */
 function checkRoom(checking=null) {
     username = document.getElementById("name").value;
+
     if (checking === null) {
         checking = document.getElementById("roomNo").value;
     }
@@ -139,7 +142,6 @@ function checkRoom(checking=null) {
                 showImageChoice();
             })
     }
-
 }
 
 /**
@@ -148,7 +150,8 @@ function checkRoom(checking=null) {
 function showImageChoice(moving) {
     document.getElementById('connect').classList.add('hidden');
     document.getElementById('image_form').classList.remove('hidden');
-    var button = document.getElementById('upload');
+
+    const button = document.getElementById('upload');
     button.onclick = function() { submitImage(moving); };
     imageSelector('url');
 }
@@ -245,7 +248,6 @@ function hideLoginInterface(room, username) {
  * @param author: Image author
  * @param image: Image URL, can be a link or base64
  * @param room: Room to create with new image
- * @param callback: Success function
  */
 function newImage(url, title, desc, author, image, room) {
     return new Promise((resolve, reject) => {
@@ -284,18 +286,21 @@ function newImage(url, title, desc, author, image, room) {
  * Submit an image URL or file for creation
  */
 function submitImage(moving) {
-    const type = document.getElementById('imageType').value;
-    var newRoom;
+    let newRoom;
     if (moving) {
         newRoom = generateRoom();
     } else {
         room = document.getElementById('roomNo').value;
         newRoom = room;
     }
+
+    const type = document.getElementById('imageType').value;
     const title = document.getElementById('title').value;
     const description = document.getElementById('desc').value;
-    var image;
     const author = document.getElementById('author').value;
+
+    let image;
+
     if (type === "imageURL") {
         const imageURL = document.getElementById('image_url').value;
         image = base64FromUrl(imageURL)
@@ -425,31 +430,39 @@ function displayImages(images) {
 
 async function initDatabase() {
     dbInstance = await idb.openDB('appdb', 3, {
-        upgrade(db, oldVersion) {
+        upgrade(dbInstance, oldVersion) {
+            // if database is created for the first time
             if (oldVersion < 1) {
-                let imageStore = db.createObjectStore('images', {
+                let imageStore = dbInstance.createObjectStore('images', {
                     keyPath: 'id',
                     autoIncrement: true
                 });
                 imageStore.createIndex('room', 'room')
                 imageStore.createIndex('uniqueImage', ['room', 'title', 'description', 'author', 'url'], {unique: true})
 
-                let chatStore = db.createObjectStore('chats', {
+                let chatStore = dbInstance.createObjectStore('chats', {
                     keyPath: 'id',
                     autoIncrement: true
                 });
                 chatStore.createIndex('room', 'room')
                 chatStore.createIndex('roomTime', ['room', 'timestamp'], {unique: true})
 
-                let strokeStore = db.createObjectStore('strokes', {
+                let strokeStore = dbInstance.createObjectStore('strokes', {
                     keyPath: 'id',
                     autoIncrement: true
                 });
                 strokeStore.createIndex('room', 'room')
                 strokeStore.createIndex('roomTime', ['room', 'timestamp'], {unique: true})
+
+                const annotationStore = dbInstance.createObjectStore('annotations', {
+                    keyPath: 'id',
+                    autoIncrement: true
+                });
+                annotationStore.createIndex('room', 'room');
             }
+
             if (oldVersion < 2) {
-                let moveStore = db.createObjectStore('moves', {
+                let moveStore = dbInstance.createObjectStore('moves', {
                     keyPath: 'id',
                     autoIncrement: true
                 });
@@ -469,6 +482,7 @@ async function initDatabase() {
             }
         }
     });
+
     console.log('DB created');
 }
 
@@ -513,10 +527,10 @@ async function storeMove(room, toRoom, timestamp) {
         toRoom: toRoom,
         timestamp: timestamp
     }
-    if (!db)
+    if (!dbInstance)
         await initDatabase();
-    if (db) {
-        db.put('moves', moveObject)
+    if (dbInstance) {
+        dbInstance.put('moves', moveObject)
     }
 }
 
@@ -599,9 +613,9 @@ async function syncImages() {
 }
 
 async function loadCachedChats(room) {
-    var chats = await getChats(room);
-    var moves = await getMoves(room);
-    var messages = chats.concat(moves);
+    const chats = await getChats(room);
+    const moves = await getMoves(room);
+    const messages = chats.concat(moves);
     messages.sort(compareTimes);
     messages.forEach(message =>  {
         if (message.hasOwnProperty("toRoom")) {

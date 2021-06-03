@@ -63,7 +63,7 @@
                 </div>
                 <div id="imageUpload" style="display: none">
                     <p><label for="image_upload"> Image </label>
-                        <input type="file" name="image_upload" id="image_upload" "image/*">
+                        <input type="file" name="image_upload" id="image_upload" accept="image/*">
                     </p>
                 </div>
                 <div id="imageSelect" style="display: none">
@@ -101,8 +101,8 @@
                 <div class="chat-wrapper">
                     <input type="text" id="chat_input" name="chat_input">
                     <button id="switch_mode">Switch to annotating</button>
-                    <button id="chat_send" onclick="sendChatText()">Send</button>
                     <button id="change_image" onclick="showImageChoice(true)">Change Image</button>
+                    <button id="chat_send" onclick="sendChatText()">Send</button>
                 </div>
             </form>
         </div>

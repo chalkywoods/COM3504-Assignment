@@ -28,36 +28,37 @@ function initCanvas(socket, imageUrl) {
     img.src = imageUrl;
 
     // event on the canvas when the mouse is on it
-    canvas.on('mousemove mousedown mouseup mouseout', function (e) {
-        if(mode !== 'drawing')
-            return;
+    if (!canvasReady) {
+        canvas.on('mousemove mousedown mouseup mouseout', function (e) {
+            if (mode !== 'drawing')
+                return;
 
-        prevX = currX;
-        prevY = currY;
-        currX = e.clientX - canvas.position().left;
-        currY = e.clientY - canvas.position().top;
-        if (e.type === 'mousedown') {
-            flag = true;
-        }
-        if (e.type === 'mouseup' || e.type === 'mouseout') {
-            flag = false;
-        }
-        // if the flag is up, the movement of the mouse draws on the canvas
-        if (e.type === 'mousemove') {
-            if (flag) {
-                drawOnCanvas(ctx, canvas.width, canvas.height, prevX, prevY, currX, currY, color, thickness);
-                // @todo if you draw on the canvas, you may want to let everyone know via socket.io (socket.emit...)  by sending them
-                // room, userId, canvas.width, canvas.height, prevX, prevY, currX, currY, color, thickness
-                let stroke_obj = {
-                    width: canvas.width,
-                    height: canvas.height,
-                    prevX: prevX,
-                    prevY: prevY,
-                    currX: currX,
-                    currY: currY,
-                }
-                let timestamp = Date.now()
-                storeStroke(room, timestamp, stroke_obj);
+            prevX = currX;
+            prevY = currY;
+            currX = e.clientX - canvas.position().left;
+            currY = e.clientY - canvas.position().top;
+            if (e.type === 'mousedown') {
+                flag = true;
+            }
+            if (e.type === 'mouseup' || e.type === 'mouseout') {
+                flag = false;
+            }
+            // if the flag is up, the movement of the mouse draws on the canvas
+            if (e.type === 'mousemove') {
+                if (flag) {
+                    drawOnCanvas(ctx, canvas.width, canvas.height, prevX, prevY, currX, currY, color, thickness);
+                    // @todo if you draw on the canvas, you may want to let everyone know via socket.io (socket.emit...)  by sending them
+                    // room, userId, canvas.width, canvas.height, prevX, prevY, currX, currY, color, thickness
+                    let stroke_obj = {
+                        width: canvas.width,
+                        height: canvas.height,
+                        prevX: prevX,
+                        prevY: prevY,
+                        currX: currX,
+                        currY: currY,
+                    }
+                    let timestamp = Date.now()
+                    storeStroke(room, timestamp, stroke_obj);
 
                     let stroke = JSON.stringify(stroke_obj);
                     socket.emit('stroke', room, username, stroke, timestamp);
@@ -123,6 +124,7 @@ function initCanvas(socket, imageUrl) {
         });
         canvasReady = true;
     }
+}
 
 /**
  * called when it is required to draw the image on the canvas. We have resized the canvas to the same image size
