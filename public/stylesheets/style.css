@@ -201,11 +201,11 @@ button:hover {
     margin-top: 0.25rem;
 }
 
+.move_room_button {
+    border: 1px solid grey;
+}
+
 /* helpers classes for controlling elements visibility */
 .hidden {
     display: none;
-}
-
-.move_room_button {
-    border: 1px solid grey;
 }

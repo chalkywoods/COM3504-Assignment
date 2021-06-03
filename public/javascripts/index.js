@@ -9,6 +9,17 @@ const socket = io();
  * plus the associated actions
  */
 function init() {
+    // register a service worker
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js').then(function (registration) {
+            // registration successful
+            console.log('ServiceWorker registration successful with scope: ', registration.scope);
+        }, function (err) {
+            // registration failed
+            console.log('ServiceWorker registration failed: ', err);
+        });
+    }
+
     // it sets up the interface so that userId and room are selected
     document.getElementById('initial_form').classList.remove('hidden');
     document.getElementById('chat_interface').classList.add('hidden');
@@ -125,10 +136,10 @@ function showImageChoice(moving) {
  * @returns false
  */
 function imageSelector(method) {
-    const url =  document.getElementById('imageURL');
-    const upload =  document.getElementById('imageUpload');
-    const select =  document.getElementById('imageSelect');
-    const attributes =  document.getElementById('imageAttributes');
+    const url = document.getElementById('imageURL');
+    const upload = document.getElementById('imageUpload');
+    const select = document.getElementById('imageSelect');
+    const attributes = document.getElementById('imageAttributes');
     const type = document.getElementById('imageType');
     const submit = document.getElementById('upload');
     if (method === 'url') {
@@ -319,7 +330,7 @@ function getImageByAuthor() {
     const query = document.getElementById('author_search').value;
     $.ajax({
         url: "/search",
-        data: JSON.stringify({author: query}),
+        data: JSON.stringify({ author: query }),
         contentType: 'application/json',
         type: 'POST',
         success: function (dataR) {
@@ -361,7 +372,7 @@ function useImage(image) {
 function displayImages(images) {
     let display_div = document.getElementById('show_images');
     display_div.innerHTML = '';
-    images.forEach(function(image) {
+    images.forEach(function (image) {
         let newDiv = document.createElement("DIV");
         let title = document.createElement("H3");
         title.innerText = image.title;
@@ -377,7 +388,7 @@ function displayImages(images) {
         newDiv.appendChild(author);
         newDiv.appendChild(thumbnail);
         newDiv.id = "imageDiv";
-        newDiv.onclick = function() {useImage(image)};
+        newDiv.onclick = function () { useImage(image) };
         display_div.appendChild(newDiv);
     })
 }
@@ -516,7 +527,7 @@ async function loadCachedChats(room) {
 
 async function loadCachedStrokes(room, context) {
     getStrokes(room)
-        .then(function(strokes) {
+        .then(function (strokes) {
             strokes.forEach(stroke => drawOnCanvas(
                 context,
                 stroke.width,
