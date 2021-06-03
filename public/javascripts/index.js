@@ -9,6 +9,7 @@ const socket = io();
  * plus the associated actions
  */
 function init() {
+    // it sets up the interface so that userId and room are selected
     // register a service worker
     // TODO: Untick later
     // if ('serviceWorker' in navigator) {
@@ -133,6 +134,7 @@ function showImageChoice(moving) {
 
     const button = document.getElementById('upload');
     button.onclick = function() { submitImage(moving); };
+    imageSelector('url');
 }
 
 /**
@@ -197,6 +199,7 @@ function changeRoom(room) {
     let history = document.getElementById('history');
     let paragraph = document.createElement('p');
     let button = document.createElement('button');
+    button.className = "move_room_button"
     button.onclick = function() {checkRoom(room)};
     button.innerHTML = `Move to room ${room}`;
     paragraph.appendChild(button);
@@ -298,8 +301,13 @@ function submitImage(moving) {
  */
 
 async function base64FromUrl(url) {
-    const data = await fetch(url);
-    const blob = await data.blob();
+    const blob = await fetch(url, {mode: "cors"})
+        .then(data => data.blob())
+        .catch(e => {
+            if (e instanceof TypeError) {
+                alert("Invalid image URL");
+            }
+        })
     return new Promise((resolve) => {
         const reader = new FileReader();
         reader.readAsDataURL(blob);
@@ -447,6 +455,7 @@ async function storeImage(room, imageObject) {
     if (dbInstance) {
         imageObject['room'] = room;
         dbInstance.put('images', imageObject)
+            .catch(err => console.log("Image already cached"))
     }
 }
 
@@ -489,19 +498,35 @@ async function storeMove(room, toRoom, timestamp) {
 
 
 async function getImage(room) {
-    return dbInstance.getFromIndex('images', 'room', room);
+    if (!dbInstance)
+        await initDatabase();
+    if (dbInstance) {
+        return dbInstance.getFromIndex('images', 'room', room);
+    }
 }
 
 async function getChats(room) {
-    return dbInstance.getAllFromIndex('chats', 'room', room);
+    if (!dbInstance)
+        await initDatabase();
+    if (dbInstance) {
+        return dbInstance.getAllFromIndex('chats', 'room', room);
+    }
 }
 
 async function getMoves(room) {
-    return dbInstance.getAllFromIndex('moves', 'room', room);
+    if (!dbInstance)
+        await initDatabase();
+    if (dbInstance) {
+        return dbInstance.getAllFromIndex('moves', 'room', room);
+    }
 }
 
 async function getStrokes(room) {
-    return dbInstance.getAllFromIndex('strokes', 'room', room);
+    if (!dbInstance)
+        await initDatabase();
+    if (dbInstance) {
+        return dbInstance.getAllFromIndex('strokes', 'room', room);
+    }
 }
 
 async function loadCachedChats(room) {
