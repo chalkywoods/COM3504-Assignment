@@ -396,7 +396,7 @@ function displayImages(images) {
 
 async function initDatabase() {
     dbInstance = await idb.openDB('appdb', 1, {
-        upgrade(dbInstance) {
+        upgrade(dbInstance, oldVersion) {
             // if database is created for the first time
             if (oldVersion < 1) {
                 let imageStore = dbInstance.createObjectStore('images', {
@@ -406,14 +406,14 @@ async function initDatabase() {
                 imageStore.createIndex('room', 'room')
                 imageStore.createIndex('uniqueImage', ['room', 'title', 'description', 'author', 'url'], {unique: true})
 
-                let chatStore = db.createObjectStore('chats', {
+                let chatStore = dbInstance.createObjectStore('chats', {
                     keyPath: 'id',
                     autoIncrement: true
                 });
                 chatStore.createIndex('room', 'room')
                 chatStore.createIndex('roomTime', ['room', 'timestamp'], {unique: true})
 
-                let strokeStore = db.createObjectStore('strokes', {
+                let strokeStore = dbInstance.createObjectStore('strokes', {
                     keyPath: 'id',
                     autoIncrement: true
                 });
@@ -428,7 +428,7 @@ async function initDatabase() {
             }
 
             if (oldVersion < 2) {
-                let moveStore = db.createObjectStore('moves', {
+                let moveStore = dbInstance.createObjectStore('moves', {
                     keyPath: 'id',
                     autoIncrement: true
                 });
@@ -480,10 +480,10 @@ async function storeMove(room, toRoom, timestamp) {
         toRoom: toRoom,
         timestamp: timestamp
     }
-    if (!db)
+    if (!dbInstance)
         await initDatabase();
-    if (db) {
-        db.put('moves', moveObject)
+    if (dbInstance) {
+        dbInstance.put('moves', moveObject)
     }
 }
 
@@ -497,7 +497,7 @@ async function getChats(room) {
 }
 
 async function getMoves(room) {
-    return db.getAllFromIndex('moves', 'room', room);
+    return dbInstance.getAllFromIndex('moves', 'room', room);
 }
 
 async function getStrokes(room) {

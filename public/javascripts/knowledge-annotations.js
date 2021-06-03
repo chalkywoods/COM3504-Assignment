@@ -111,7 +111,7 @@ const KnowledgeAnnotations = (function () {
 
         // scaling the annotation rectangle
         const scaleFactor = canvas.offsetWidth / annotation.canvasWidth;
-
+x
         rectElement.style.left = scaleFactor * annotation.x + canvas.offsetLeft + 'px';
         rectElement.style.top = scaleFactor * annotation.y + canvas.offsetTop + 'px';
         rectElement.style.width = scaleFactor * annotation.width + 'px';
