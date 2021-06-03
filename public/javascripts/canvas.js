@@ -60,20 +60,6 @@ function initCanvas(socket, imageUrl) {
         }
     });
 
-    // this is code left in case you need to  provide a button clearing the canvas (it is suggested that you implement it)
-    $('.canvas-clear').on('click', function (e) {
-        let c_width = canvas.width();
-        let c_height = canvas.height();
-        ctx.clearRect(0, 0, c_width, c_height);
-        // @todo if you clear the canvas, you want to let everyone know via socket.io (socket.emit...)
-
-    });
-
-    // @todo here you want to capture the event on the socket when someone else is drawing on their canvas (socket.on...)
-    // I suggest that you receive userId, canvasWidth, canvasHeight, x1, y21, x2, y2, color, thickness
-    // and then you call
-    //     let ctx = canvas[0].getContext('2d');
-    //     drawOnCanvas(ctx, canvasWidth, canvasHeight, x1, y21, x2, y2, color, thickness)
     // receive a drawing
     socket.on('stroke', (room, sender_username, stroke, timestamp) => {
         console.log(room);
@@ -118,6 +104,17 @@ function initCanvas(socket, imageUrl) {
     });
 }
 
+// clear the canvas by re-drawing the current image on top
+function clearCanvas() {
+    let cvx = document.getElementById('canvas');
+    let ctx = cvx.getContext('2d');
+    let img = document.getElementById('image');
+
+    img.style.display = 'flex';
+    drawImageScaled(img, cvx, ctx);
+    img.style.display = 'none';
+}
+
 /**
  * called when it is required to draw the image on the canvas. We have resized the canvas to the same image size
  * so ti is simpler to draw later. Any cached strokes for the image are drawn.
@@ -152,7 +149,6 @@ function drawImageScaled(img, canvas, ctx) {
  * @param thickness of the line
  */
 function drawOnCanvas(ctx, canvasWidth, canvasHeight, prevX, prevY, currX, currY, color, thickness) {
-    console.log("Drawing!!!")
     //get the ration between the current canvas and the one it has been used to draw on the other comuter
     let ratioX = canvas.width / canvasWidth;
     let ratioY = canvas.height / canvasHeight;

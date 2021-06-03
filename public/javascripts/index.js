@@ -42,6 +42,17 @@ function init() {
         storeChat(room, sender_username, msg, timestamp);
         writeOnHistory('<b>' + who + ':</b> ' + msg);
     });
+    
+    // receive clear canvas event
+    socket.on('clear_canvas', (room) => {
+        deleteCachedStrokes(room)
+            .then(() => {
+                // clear canvas for the user
+                clearCanvas();
+                // send clear event for other users
+                socket.emit('clear_canvas', room);
+            })
+    });
 
     // check indexedDB support and initialise
     if ('indexedDB' in window) {
@@ -437,5 +448,20 @@ async function loadCachedStrokes(room, context) {
                 color,
                 thickness
             ));
+        })
+}
+
+async function deleteCachedStrokes(room) {
+    return dbInstance.delete('strokes', 'room', room);
+}
+
+async function canvasClearing() {
+    // delete cached strokes
+    deleteCachedStrokes(room)
+        .then(() => {
+            // clear canvas for the user
+            clearCanvas();
+            // send clear event for other users
+            socket.emit('clear_canvas', room);
         })
 }

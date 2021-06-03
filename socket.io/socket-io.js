@@ -20,11 +20,19 @@ exports.init = function (io) {
 
         console.log(`[SOCKET.IO] ${username} messaged room ${room}: ${msg}`);
       });
-
+      
+      // listen for drawing
       socket.on('stroke', (room, username, stroke, timestamp) => {
         socket.to(room).emit('stroke', room, username, stroke, timestamp);
 
         console.log(`[SOCKET.IO] ${username} is drawing in room ${room}`);
+      });
+
+      // listen for cleared canvas
+      socket.on('clear_canvas', (room) => {
+        socket.to(room).emit('clear_canvas', room);
+
+        console.log(`[SOCKET.IO] Canvas cleared in room ${room}`);
       });
 
       // handling knowledge graph annotation
