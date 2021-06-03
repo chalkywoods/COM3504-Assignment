@@ -11,7 +11,7 @@ exports.init = function (io) {
 
         // welcome current user
         let greeting = username + " joined the room."
-        socket.to(room).emit('message', room, "Chat Bot", greeting);
+        io.to(room).emit('message', room, "Chat Bot", greeting);
       });
 
       // listen for chat message
@@ -30,7 +30,7 @@ exports.init = function (io) {
 
       // listen for drawing
       socket.on('stroke', (room, username, stroke, timestamp) => {
-        socket.to(room).emit('stroke', room, username, stroke, timestamp);
+        io.to(room).emit('stroke', room, username, stroke, timestamp);
 
         console.log(`[SOCKET.IO] ${username} is drawing in room ${room}`);
       });
@@ -44,7 +44,7 @@ exports.init = function (io) {
 
       // handling knowledge graph annotation
       socket.on('annotation', (room, username, annotation) => {
-        socket.to(room).emit('annotation', room, username, annotation);
+        io.to(room).emit('annotation', room, username, annotation);
 
         console.log(`[SOCKET.IO] ${username} has created an annotation in room ${room}`);
       });

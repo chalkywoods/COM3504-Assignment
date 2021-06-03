@@ -82,7 +82,9 @@ function initCanvas(socket, imageUrl) {
         //     drawOnCanvas(ctx, canvasWidth, canvasHeight, x1, y21, x2, y2, color, thickness)
         // receive a drawing
         socket.on('stroke', (room, sender_username, stroke, timestamp) => {
-            console.log(room);
+            if(username === sender_username)
+                return;
+
             let stroke_obj = JSON.parse(stroke);
             let width = stroke_obj.width;
             let height = stroke_obj.height;

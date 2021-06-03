@@ -75,8 +75,6 @@ const KnowledgeAnnotations = (function () {
 
         currentRect.classList.add('rect-finished');
 
-        console.log(window.navigator.onLine);
-
         if(!window.navigator.onLine) {
             alert('Annotating is not possible while offline!');
             currentRect.parentElement.removeChild(currentRect);
