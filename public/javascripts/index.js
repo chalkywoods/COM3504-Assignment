@@ -112,6 +112,18 @@ function connectToRoom(username, room, image) {
     KnowledgeAnnotations.loadCachedAnnotations();
 }
 
+function handleConnectClick() {
+    const username = document.getElementById("name").value.trim();
+    const roomNo = document.getElementById("roomNo").value.trim();
+
+    if(username.length === 0 || roomNo.length === 0) {
+        alert('Please enter your name and room number');
+        return;
+    }
+
+    checkRoom();
+}
+
 /**
  * Checks whether the given room has an image associated with it already, and connects if it has
  */
@@ -352,8 +364,8 @@ async function base64FromUrl(url) {
         return;
     }
 
-    const blob = await response.blob();
-
+    const buffer = await response.arrayBuffer();
+    const blob = new Blob([buffer], { type: response.headers.get('content-type') });
 
     return new Promise((resolve) => {
         const reader = new FileReader();
@@ -401,6 +413,7 @@ function getImageByAuthor(moving) {
 /**
  * Use the selected existing image for a new room
  * @param image: The image to use
+ * @param moving: Indicates whether the user is moving a room
  */
 function useImage(image, moving=false) {
     const data = {
