@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const fetch = require('node-fetch');
 
 const Image = require('../models/image');
 
@@ -96,6 +97,26 @@ exports.addRoom = async (req, res) => {
             return;
         }
 
+        res.sendStatus(500);
+        return;
+    }
+}
+
+exports.getImageAsProxy = async (req, res) => {
+    const url = req.query.url;
+
+    try {
+        const response = await fetch(url);
+
+        const type = response.headers.get('content-type');
+
+        console.log("TYPE: ", response.headers.get('content-type'));
+
+        const buffer = await response.buffer();
+
+        res.set('content-type', type);
+        res.status(200).send(buffer);
+    } catch(err) {
         res.sendStatus(500);
         return;
     }

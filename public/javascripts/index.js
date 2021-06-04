@@ -52,10 +52,10 @@ function init() {
 
         try {
             clearCanvas(false);
-            await deleteCachedStrokes(room);
-            await KnowledgeAnnotations.clearAnnotations();
+            KnowledgeAnnotations.clearAnnotations();
+            deleteCachedStrokes(room);
         } catch {
-            console.log('Failed to delete strokes from the IndexedDB');
+            console.log('Failed to clear canvas');
         }
     });
 
@@ -343,16 +343,18 @@ async function promisifyUrl(url) {
 /**
  * Load an image in base64 format from image url
  * @param url: url of image
- * @returns {Promise<unknown>}
+ * @returns {Promise<unknown> || null}
  */
 async function base64FromUrl(url) {
-    const blob = await fetch(url, {mode: "cors"})
-        .then(data => data.blob())
-        .catch(e => {
-            if (e instanceof TypeError) {
-                alert("Invalid image URL");
-            }
-        })
+    const response = await fetch(`/image-proxy?url=${url}`);
+    if(!response.ok) {
+        alert('Invalid image URL');
+        return;
+    }
+
+    const blob = await response.blob();
+
+
     return new Promise((resolve) => {
         const reader = new FileReader();
         reader.readAsDataURL(blob);

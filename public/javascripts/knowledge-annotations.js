@@ -179,10 +179,10 @@ x
         if (!dbInstance)
             await initDatabase();
 
+        deleteAnnotations();
+
         const annotations = await dbInstance.getAllFromIndex('annotations', 'room', room);
         annotations.forEach(annotation => dbInstance.delete('annotations', annotation.id));
-
-        deleteAnnotations();
 
         console.log('Annotations deleted from the IndexedDB');
     };
